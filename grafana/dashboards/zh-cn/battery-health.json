@@ -1268,7 +1268,7 @@
         ]
       },
       "gridPos": {
-        "h": 3,
+        "h": 2,
         "w": 4,
         "x": 6,
         "y": 9
@@ -1297,7 +1297,7 @@
         "showUnfilled": true,
         "sizing": "manual",
         "text": {
-          "valueSize": 16
+          "valueSize": 14
         },
         "valueMode": "color"
       },
@@ -1594,10 +1594,10 @@
         ]
       },
       "gridPos": {
-        "h": 3,
+        "h": 2,
         "w": 4,
         "x": 6,
-        "y": 12
+        "y": 11
       },
       "id": 27,
       "options": {
@@ -1623,7 +1623,7 @@
         "showUnfilled": true,
         "sizing": "manual",
         "text": {
-          "valueSize": 16
+          "valueSize": 14
         },
         "valueMode": "color"
       },
@@ -1823,7 +1823,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 13
       },
       "id": 28,
       "options": {
