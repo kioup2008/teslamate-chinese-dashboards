@@ -800,7 +800,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "PC98BA2F4D77E1A42"
+        "uid": "TeslaMate"
       },
       "fieldConfig": {
         "defaults": {
@@ -1068,7 +1068,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "PC98BA2F4D77E1A42"
+            "uid": "TeslaMate"
           },
           "editorMode": "code",
           "format": "table",
