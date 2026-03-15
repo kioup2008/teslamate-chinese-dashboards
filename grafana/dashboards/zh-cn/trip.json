@@ -67,6 +67,18 @@
       "tooltip": "",
       "type": "link",
       "url": "https://www.teslamate.com.cn"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "显示最近3次行程",
+      "tooltip": "切换时间范围显示最近3次行程",
+      "type": "link",
+      "url": "/d/FkUpJpQZk/trip?from=$from&to=now"
     }
   ],
   "panels": [
