@@ -164,16 +164,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Time driven"
+              "options": "行驶时长"
             },
             "properties": [
               {
                 "id": "displayName",
                 "value": "行驶时间"
-              },
-              {
-                "id": "unit",
-                "value": "dtdurations"
               },
               {
                 "id": "custom.align",
@@ -251,7 +247,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "# drives"
+              "options": "行程次数"
             },
             "properties": [
               {
@@ -455,7 +451,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH data AS (\nSELECT\n  duration_min > 1 AND\n  distance > 1 AND\n  ( \n    start_position.usable_battery_level IS NULL OR\n    (end_position.battery_level - end_position.usable_battery_level) = 0 \n  ) AS is_sufficiently_precise,\n  NULLIF(GREATEST(start_ideal_range_km - end_ideal_range_km, 0), 0) AS range_diff,\n  date_trunc('$period', start_date::TIMESTAMP) as local_period,\n  drives.*\nFROM drives\n  LEFT JOIN positions start_position ON start_position_id = start_position.id\n  LEFT JOIN positions end_position ON end_position_id = end_position.id)\nSELECT\n  EXTRACT(EPOCH FROM date_trunc('$period', local_period))*1000 AS date_from,\n  EXTRACT(EPOCH FROM date_trunc('$period', local_period + ('1 ' || '$period')::INTERVAL))*1000 AS date_to,\n  CASE '$period'\n    WHEN 'month' THEN to_char(local_period, 'YYYY-MM')\n    WHEN 'year' THEN to_char(local_period, 'YYYY')\n    WHEN 'week' THEN 'week ' || to_char(local_period, 'WW') || ' starting ' || to_char(local_period, 'YYYY-MM-DD')\n    ELSE to_char(local_period, 'YYYY-MM-DD')\n  END AS display,\n  local_period AS date,\n  sum(duration_min)*60 AS sum_duration_h, \n  convert_km(max(end_km)::integer - min(start_km)::integer, '$length_unit') AS sum_distance_$length_unit,\n  count(*) AS cnt,\n  sum(distance)/sum(range_diff) AS efficiency\nFROM data WHERE\n  car_id = $car_id AND\n  $__timeFilter(start_date)\nGROUP BY date\nORDER BY date",
+          "rawSql": "WITH data AS (\nSELECT\n  duration_min > 1 AND\n  distance > 1 AND\n  ( \n    start_position.usable_battery_level IS NULL OR\n    (end_position.battery_level - end_position.usable_battery_level) = 0 \n  ) AS is_sufficiently_precise,\n  NULLIF(GREATEST(start_ideal_range_km - end_ideal_range_km, 0), 0) AS range_diff,\n  date_trunc('$period', start_date::TIMESTAMP) as local_period,\n  drives.*\nFROM drives\n  LEFT JOIN positions start_position ON start_position_id = start_position.id\n  LEFT JOIN positions end_position ON end_position_id = end_position.id)\nSELECT\n  EXTRACT(EPOCH FROM date_trunc('$period', local_period))*1000 AS date_from,\n  EXTRACT(EPOCH FROM date_trunc('$period', local_period + ('1 ' || '$period')::INTERVAL))*1000 AS date_to,\n  CASE '$period'\n    WHEN 'month' THEN to_char(local_period, 'YYYY-MM')\n    WHEN 'year' THEN to_char(local_period, 'YYYY')\n    WHEN 'week' THEN 'week ' || to_char(local_period, 'WW') || ' starting ' || to_char(local_period, 'YYYY-MM-DD')\n    ELSE to_char(local_period, 'YYYY-MM-DD')\n  END AS display,\n  local_period AS date,\n  CASE\n    WHEN sum(duration_min) < 60   THEN floor(sum(duration_min))::int::text || ' 分钟'\n    WHEN sum(duration_min) < 1440 THEN floor(sum(duration_min)/60)::int::text || ' 小时 ' || (floor(sum(duration_min))::int % 60)::text || ' 分钟'\n    ELSE floor(sum(duration_min)/1440)::int::text || ' 天 ' || (floor(sum(duration_min)/60)::int % 24)::text || ' 小时 ' || (floor(sum(duration_min))::int % 60)::text || ' 分钟'\n  END AS sum_duration_h, \n  convert_km(max(end_km)::integer - min(start_km)::integer, '$length_unit') AS sum_distance_$length_unit,\n  count(*) AS cnt,\n  sum(distance)/sum(range_diff) AS efficiency\nFROM data WHERE\n  car_id = $car_id AND\n  $__timeFilter(start_date)\nGROUP BY date\nORDER BY date",
           "refId": "A",
           "select": [
             [
@@ -479,7 +475,7 @@
           ]
         }
       ],
-      "title": "每${period}统计",
+      "title": "每${period:text}统计",
       "transformations": [
         {
           "id": "seriesToColumns",
@@ -585,20 +581,20 @@
               "sum_duration_h": 2
             },
             "renameByName": {
-              "avg_consumption_kwh": "Avg charged",
+              "avg_consumption_kwh": "平均能耗",
               "avg_outside_temp_c": "",
-              "cnt": "# drives",
-              "cnt_charges": "# charges",
-              "cost_charges": "Costs",
-              "date": "Starting at",
+              "cnt": "行程次数",
+              "cnt_charges": "充电次数",
+              "cost_charges": "费用",
+              "date": "起始时间",
               "date_from": "",
               "date_to": "",
-              "display": "Period",
-              "efficiency": "Efficiency",
+              "display": "周期",
+              "efficiency": "效率",
               "efficiency_net_km": "",
-              "sum_consumption_kwh": "Energy charged",
+              "sum_consumption_kwh": "充电量",
               "sum_distance_km": "",
-              "sum_duration_h": "Time driven"
+              "sum_duration_h": "行驶时长"
             }
           }
         }
@@ -688,10 +684,6 @@
               "options": "cnt"
             },
             "properties": [
-              {
-                "id": "unit",
-                "value": "drives"
-              },
               {
                 "id": "custom.axisPlacement",
                 "value": "hidden"
@@ -843,7 +835,7 @@
           ]
         }
       ],
-      "title": "${length_unit} & drives per ${period}",
+      "title": "每${period:text}行驶里程与行程次数",
       "transformations": [
         {
           "id": "filterFieldsByName",
