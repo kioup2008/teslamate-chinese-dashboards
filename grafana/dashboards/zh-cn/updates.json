@@ -226,10 +226,8 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
+          "calcs": [],
+          "fields": "/.*/",
           "values": true
         },
         "showPercentChange": false,
