@@ -1135,7 +1135,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "show timezone;",
+          "rawSql": "SELECT current_setting('timezone') AS \"时区\";",
           "refId": "里程记录",
           "sql": {
             "columns": [
