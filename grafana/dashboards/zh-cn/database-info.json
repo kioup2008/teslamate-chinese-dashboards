@@ -1352,7 +1352,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "Check the [contribution docs](https://docs.teslamate.org/docs/development#enable-pg_stat_statements-to-collect-query-statistics) on how to enable tracking planning and execution statistics of all SQL statements executed by a server.\n",
+        "content": "启用 pg_stat_statements 后，可在此查看数据库 SQL 执行统计信息。请参考 PostgreSQL 官方文档了解如何启用此功能。",
         "mode": "markdown"
       },
       "pluginVersion": "11.6.1",
@@ -1406,6 +1406,10 @@
               {
                 "id": "custom.width",
                 "value": 80
+              },
+              {
+                "id": "displayName",
+                "value": "调用次数"
               }
             ]
           },
@@ -1418,6 +1422,10 @@
               {
                 "id": "custom.inspect",
                 "value": true
+              },
+              {
+                "id": "displayName",
+                "value": "SQL语句"
               }
             ]
           },
@@ -1430,6 +1438,10 @@
               {
                 "id": "custom.width",
                 "value": 140
+              },
+              {
+                "id": "displayName",
+                "value": "平均执行时间(ms)"
               }
             ]
           },
@@ -1442,6 +1454,58 @@
               {
                 "id": "custom.width",
                 "value": 140
+              },
+              {
+                "id": "displayName",
+                "value": "总执行时间(ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "calls"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "调用次数"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mean_exec_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "平均执行时间(ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_exec_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "总执行时间(ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "query"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "SQL语句"
               }
             ]
           }
@@ -1549,6 +1613,10 @@
               {
                 "id": "custom.width",
                 "value": 80
+              },
+              {
+                "id": "displayName",
+                "value": "调用次数"
               }
             ]
           },
@@ -1561,6 +1629,10 @@
               {
                 "id": "custom.inspect",
                 "value": true
+              },
+              {
+                "id": "displayName",
+                "value": "SQL语句"
               }
             ]
           },
@@ -1573,6 +1645,10 @@
               {
                 "id": "custom.width",
                 "value": 140
+              },
+              {
+                "id": "displayName",
+                "value": "平均执行时间(ms)"
               }
             ]
           },
@@ -1585,6 +1661,58 @@
               {
                 "id": "custom.width",
                 "value": 140
+              },
+              {
+                "id": "displayName",
+                "value": "总执行时间(ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "calls"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "调用次数"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mean_exec_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "平均执行时间(ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_exec_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "总执行时间(ms)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "query"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "SQL语句"
               }
             ]
           }

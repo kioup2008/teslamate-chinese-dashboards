@@ -227,7 +227,7 @@
       },
       "id": 10,
       "options": {
-        "content": "#### Incomplete Data\n\nFrom here you can check if you have incomplete data of **Drives** and **Charges**. If so, you may follow the official guide by <a href='https://github.com/wjsall/teslamate-chinese-dashboardsdocs/maintenance/manually_fixing_data' target='_blank'>Manually fixing data</a>",
+        "content": "在此处可检查是否存在不完整的行程或充电记录。如有需要，请参考官方文档手动修复数据。",
         "mode": "markdown"
       },
       "pluginVersion": "8.5.15",
@@ -333,6 +333,30 @@
               {
                 "id": "displayName",
                 "value": "时长(分钟)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start_date"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "开始时间"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "end_date"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "结束时间"
               }
             ]
           }
@@ -457,6 +481,78 @@
               {
                 "id": "displayName",
                 "value": "电池电量"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start_date"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "开始时间"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "end_date"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "结束时间"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "charge_energy_added"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "充电量"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "charge_energy_used"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "实际消耗"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start_battery_level"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "起始电量"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "end_battery_level"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "结束电量"
               }
             ]
           }

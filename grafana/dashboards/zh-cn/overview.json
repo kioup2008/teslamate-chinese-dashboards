@@ -2208,6 +2208,18 @@
                 "value": "车辆ID"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "state"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "状态"
+              }
+            ]
           }
         ]
       },

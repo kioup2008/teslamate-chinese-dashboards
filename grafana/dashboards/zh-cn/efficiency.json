@@ -1119,6 +1119,18 @@
                 "value": "电池电量"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "次数"
+              }
+            ]
           }
         ]
       },
@@ -1266,6 +1278,18 @@
               {
                 "id": "displayName",
                 "value": "电池电量"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "次数"
               }
             ]
           }

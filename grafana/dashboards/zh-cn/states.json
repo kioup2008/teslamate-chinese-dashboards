@@ -96,7 +96,48 @@
       "description": "仅识别在线、离线和休眠。",
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "offline": {
+                  "text": "离线",
+                  "color": "grey",
+                  "index": 0
+                },
+                "online": {
+                  "text": "在线",
+                  "color": "green",
+                  "index": 1
+                },
+                "driving": {
+                  "text": "行驶中",
+                  "color": "blue",
+                  "index": 2
+                },
+                "charging": {
+                  "text": "充电中",
+                  "color": "yellow",
+                  "index": 3
+                },
+                "asleep": {
+                  "text": "休眠",
+                  "color": "purple",
+                  "index": 4
+                },
+                "updating": {
+                  "text": "更新中",
+                  "color": "orange",
+                  "index": 5
+                },
+                "suspended": {
+                  "text": "暂停",
+                  "color": "grey",
+                  "index": 6
+                }
+              }
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -194,7 +235,48 @@
       "description": "仅识别在线、离线和休眠。",
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "offline": {
+                  "text": "离线",
+                  "color": "grey",
+                  "index": 0
+                },
+                "online": {
+                  "text": "在线",
+                  "color": "green",
+                  "index": 1
+                },
+                "driving": {
+                  "text": "行驶中",
+                  "color": "blue",
+                  "index": 2
+                },
+                "charging": {
+                  "text": "充电中",
+                  "color": "yellow",
+                  "index": 3
+                },
+                "asleep": {
+                  "text": "休眠",
+                  "color": "purple",
+                  "index": 4
+                },
+                "updating": {
+                  "text": "更新中",
+                  "color": "orange",
+                  "index": 5
+                },
+                "suspended": {
+                  "text": "暂停",
+                  "color": "grey",
+                  "index": 6
+                }
+              }
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -494,6 +576,18 @@
               {
                 "id": "displayName",
                 "value": "车辆ID"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "state"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "状态"
               }
             ]
           }

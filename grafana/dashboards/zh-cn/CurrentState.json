@@ -1538,48 +1538,44 @@
           },
           "mappings": [
             {
+              "type": "value",
               "options": {
-                "0": {
-                  "color": "super-light-blue",
-                  "index": 0,
-                  "text": "在线"
+                "offline": {
+                  "text": "离线",
+                  "color": "grey",
+                  "index": 0
                 },
-                "1": {
-                  "color": "purple",
-                  "index": 1,
-                  "text": "驾驶中"
-                },
-                "2": {
-                  "color": "yellow",
-                  "index": 2,
-                  "text": "充电中"
-                },
-                "3": {
-                  "color": "super-light-orange",
-                  "index": 3,
-                  "text": "离线"
-                },
-                "4": {
+                "online": {
+                  "text": "在线",
                   "color": "green",
-                  "index": 4,
-                  "text": "休眠中"
+                  "index": 1
                 },
-                "5": {
-                  "color": "super-light-blue",
-                  "index": 5,
-                  "text": "在线"
+                "driving": {
+                  "text": "行驶中",
+                  "color": "blue",
+                  "index": 2
                 },
-                "6": {
-                  "color": "red",
-                  "index": 6,
-                  "text": "更新中"
+                "charging": {
+                  "text": "充电中",
+                  "color": "yellow",
+                  "index": 3
                 },
-                "null": {
-                  "index": 7,
-                  "text": "无数据"
+                "asleep": {
+                  "text": "休眠",
+                  "color": "purple",
+                  "index": 4
+                },
+                "updating": {
+                  "text": "更新中",
+                  "color": "orange",
+                  "index": 5
+                },
+                "suspended": {
+                  "text": "暂停",
+                  "color": "grey",
+                  "index": 6
                 }
-              },
-              "type": "value"
+              }
             }
           ],
           "noValue": "0",
@@ -2027,6 +2023,18 @@
               {
                 "id": "displayName",
                 "value": "车辆ID"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "state"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "状态"
               }
             ]
           }

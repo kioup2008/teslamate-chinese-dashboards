@@ -1256,6 +1256,7 @@
       },
       {
         "current": {
+          "selected": true,
           "text": "月",
           "value": "month"
         },
@@ -1263,16 +1264,6 @@
         "label": "周期",
         "name": "period",
         "options": [
-          {
-            "selected": false,
-            "text": "日",
-            "value": "day"
-          },
-          {
-            "selected": false,
-            "text": "周",
-            "value": "week"
-          },
           {
             "selected": true,
             "text": "月",
@@ -1282,9 +1273,19 @@
             "selected": false,
             "text": "年",
             "value": "year"
+          },
+          {
+            "selected": false,
+            "text": "日",
+            "value": "day"
+          },
+          {
+            "selected": false,
+            "text": "周",
+            "value": "week"
           }
         ],
-        "query": "day,week,month,year",
+        "query": "月 : month,年 : year,日 : day,周 : week",
         "type": "custom"
       },
       {
@@ -1323,8 +1324,9 @@
       },
       {
         "current": {
+          "selected": true,
           "text": "否",
-          "value": "0"
+          "value": "no"
         },
         "description": "启用后，\"平均能耗（总值）\"将通过以下方式计算 位置数据而不是充电过程和行程.\n\n虽然这样更准确 (特别对于较短的时间段) 这在较慢的硬件上会很慢！",
         "includeAll": false,
@@ -1334,15 +1336,15 @@
           {
             "selected": true,
             "text": "否",
-            "value": "0"
+            "value": "no"
           },
           {
             "selected": false,
             "text": "是",
-            "value": "1"
+            "value": "yes"
           }
         ],
-        "query": "no : 0, yes : 1",
+        "query": "是 : yes,否 : no",
         "type": "custom"
       }
     ]
