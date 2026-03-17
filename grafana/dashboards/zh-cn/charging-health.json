@@ -152,6 +152,7 @@
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "充至100%占比",
       "type": "stat"
     },
     {
@@ -192,6 +193,7 @@
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "低电量充电占比",
       "type": "stat"
     },
     {
