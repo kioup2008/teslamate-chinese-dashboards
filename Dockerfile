@@ -4,19 +4,17 @@ FROM teslamate/grafana:3.0.0
 # 标签信息
 LABEL maintainer="wjsall"
 LABEL description="TeslaMate Grafana with Chinese Dashboards"
-LABEL version="1.2.0"
+LABEL version="1.3.0"
 
 # 强制中文语言设置（关键！）
 ENV GF_DEFAULT_LANGUAGE=zh-Hans
 ENV GF_USERS_DEFAULT_LANGUAGE=zh-Hans
 ENV GF_USERS_DEFAULT_LOCALE=zh-Hans
 
-# 确保数据源 UID 固定为 TeslaMate，避免仪表板无数据
-# 先检查是否已存在，避免重复插入导致 YAML 解析错误（容器无限重启）
+# 直接覆盖数据源配置，确保 UID 固定为 TeslaMate，避免 sed 在不同基础镜像格式下失败
 USER root
-RUN grep -q 'uid: TeslaMate' /etc/grafana/provisioning/datasources/datasource.yml || \
-    sed -i '/^  - name: TeslaMate$/a\    uid: TeslaMate' \
-    /etc/grafana/provisioning/datasources/datasource.yml
+COPY grafana/provisioning/datasources/datasource.yml \
+     /etc/grafana/provisioning/datasources/datasource.yml
 USER grafana
 
 # 复制中文 Dashboard 到 TeslaMate 标准位置
