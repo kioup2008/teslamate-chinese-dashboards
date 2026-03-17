@@ -199,13 +199,10 @@
       "fieldConfig": {
         "defaults": {
           "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [{"color": "green"}, {"color": "yellow", "value": 10}, {"color": "red", "value": 20}]
-          },
-          "unit": "percent",
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+          "unit": "none",
           "decimals": 1,
-          "displayName": "低电量充电占比"
+          "displayName": "本期总充电量(kWh)"
         },
         "overrides": []
       },
@@ -220,39 +217,30 @@
         "textMode": "auto"
       },
       "pluginVersion": "11.6.1",
-      "description": "充电平均时长（交流慢充 vs 直流快充）",
+      "description": "当前时间范围内的总充电量（kWh）",
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(duration_min)::numeric, 0) AS \"平均充电时长(分)\"\nFROM charging_processes\nWHERE car_id = $car_id AND $__timeFilter(start_date) AND charge_energy_added > 1;",
+          "rawSql": "SELECT ROUND(COALESCE(SUM(charge_energy_added), 0)::numeric, 1) AS total_kwh\nFROM charging_processes\nWHERE car_id = $car_id AND $__timeFilter(start_date) AND charge_energy_added > 0;",
           "refId": "A",
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
-      "type": "stat",
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "blue"}]},
-          "unit": "m",
-          "decimals": 0,
-          "displayName": "交流慢充平均时长"
-        },
-        "overrides": []
-      }
+      "title": "本期总充电量(kWh)",
+      "type": "stat"
     },
     {
       "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
       "fieldConfig": {
         "defaults": {
           "color": {"mode": "thresholds"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "orange"}]},
-          "unit": "m",
-          "decimals": 0,
-          "displayName": "直流快充平均时长"
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue"}]},
+          "unit": "none",
+          "decimals": 1,
+          "displayName": "单次平均充电量(kWh)"
         },
         "overrides": []
       },
@@ -267,17 +255,57 @@
         "textMode": "auto"
       },
       "pluginVersion": "11.6.1",
+      "description": "当前时间范围内每次充电的平均充电量（kWh）",
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(duration_min)::numeric, 0) AS avg_min\nFROM charging_processes\nWHERE car_id = $car_id AND $__timeFilter(start_date) AND charge_energy_added > 1;",
+          "rawSql": "SELECT ROUND(AVG(charge_energy_added)::numeric, 1) AS avg_kwh\nFROM charging_processes\nWHERE car_id = $car_id AND $__timeFilter(start_date) AND charge_energy_added > 0;",
           "refId": "A",
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "单次平均充电量(kWh)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "purple"}]},
+          "unit": "none",
+          "decimals": 0,
+          "displayName": "本期充电次数(次)"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 5},
+      "id": 16,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "11.6.1",
+      "description": "当前时间范围内的充电总次数",
+      "targets": [
+        {
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS charge_count\nFROM charging_processes\nWHERE car_id = $car_id AND $__timeFilter(start_date);",
+          "refId": "A",
+          "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
+        }
+      ],
+      "title": "本期充电次数(次)",
       "type": "stat"
     },
     {
@@ -295,7 +323,7 @@
         "defaults": {
           "color": {"mode": "palette-classic"},
           "custom": {"fillOpacity": 70},
-          "unit": "short",
+          "unit": "none",
           "displayName": "次数"
         },
         "overrides": [
@@ -333,12 +361,9 @@
         "defaults": {
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 2, "fillOpacity": 10},
-          "unit": "short"
+          "unit": "none"
         },
-        "overrides": [
-          {"matcher": {"id": "byName", "options": "交流慢充"}, "properties": [{"id": "color", "value": {"fixedColor": "#56A64B", "mode": "fixed"}}]},
-          {"matcher": {"id": "byName", "options": "直流快充"}, "properties": [{"id": "color", "value": {"fixedColor": "#FF7383", "mode": "fixed"}}]}
-        ]
+        "overrides": []
       },
       "gridPos": {"h": 9, "w": 12, "x": 12, "y": 10},
       "id": 6,
@@ -378,11 +403,9 @@
           "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false}
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "address"}, "properties": [{"id": "displayName", "value": "地点"}, {"id": "custom.minWidth", "value": 200}]},
-          {"matcher": {"id": "byName", "options": "charge_count"}, "properties": [{"id": "displayName", "value": "充电次数"}]},
-          {"matcher": {"id": "byName", "options": "total_energy"}, "properties": [{"id": "displayName", "value": "总充电量"}, {"id": "unit", "value": "kwatth"}, {"id": "decimals", "value": 1}]},
-          {"matcher": {"id": "byName", "options": "dc_count"}, "properties": [{"id": "displayName", "value": "直流快充次数"}]},
-          {"matcher": {"id": "byName", "options": "avg_energy"}, "properties": [{"id": "displayName", "value": "平均单次充电量"}, {"id": "unit", "value": "kwatth"}, {"id": "decimals", "value": 1}]}
+          {"matcher": {"id": "byName", "options": "充电站"}, "properties": [{"id": "custom.minWidth", "value": 200}]},
+          {"matcher": {"id": "byName", "options": "总充电量(kWh)"}, "properties": [{"id": "unit", "value": "none"}, {"id": "decimals", "value": 1}]},
+          {"matcher": {"id": "byName", "options": "平均时长(分)"}, "properties": [{"id": "unit", "value": "none"}, {"id": "decimals", "value": 0}]}
         ]
       },
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 20},
