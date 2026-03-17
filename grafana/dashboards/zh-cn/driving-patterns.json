@@ -36,9 +36,9 @@
         "defaults": {
           "color": {"mode": "thresholds"},
           "thresholds": {"mode": "absolute", "steps": [{"color": "blue"}]},
-          "unit": "lengthkm",
+          "unit": "none",
           "decimals": 1,
-          "displayName": "工作日平均里程/天"
+          "displayName": "工作日平均里程/天(km)"
         },
         "overrides": []
       },
@@ -64,6 +64,7 @@
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "工作日平均里程/天(km)",
       "type": "stat"
     },
     {
@@ -72,9 +73,9 @@
         "defaults": {
           "color": {"mode": "thresholds"},
           "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
-          "unit": "lengthkm",
+          "unit": "none",
           "decimals": 1,
-          "displayName": "周末平均里程/天"
+          "displayName": "周末平均里程/天(km)"
         },
         "overrides": []
       },
@@ -100,6 +101,7 @@
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "周末平均里程/天(km)",
       "type": "stat"
     },
     {
@@ -110,7 +112,7 @@
           "thresholds": {"mode": "absolute", "steps": [{"color": "blue"}]},
           "unit": "none",
           "decimals": 1,
-          "displayName": "工作日平均能耗"
+          "displayName": "工作日平均能耗(Wh/km)"
         },
         "overrides": []
       },
@@ -136,6 +138,7 @@
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "工作日平均能耗(Wh/km)",
       "type": "stat"
     },
     {
@@ -146,7 +149,7 @@
           "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
           "unit": "none",
           "decimals": 1,
-          "displayName": "周末平均能耗"
+          "displayName": "周末平均能耗(Wh/km)"
         },
         "overrides": []
       },
@@ -172,6 +175,7 @@
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
       ],
+      "title": "周末平均能耗(Wh/km)",
       "type": "stat"
     },
     {
@@ -189,7 +193,7 @@
         "defaults": {
           "color": {"mode": "palette-classic"},
           "custom": {"fillOpacity": 70},
-          "unit": "short",
+          "unit": "none",
           "displayName": "行程次数"
         },
         "overrides": []
@@ -268,10 +272,10 @@
         },
         "overrides": [
           {"matcher": {"id": "byName", "options": "start_date"}, "properties": [{"id": "displayName", "value": "出发时间"}, {"id": "unit", "value": "dateTimeAsLocal"}]},
-          {"matcher": {"id": "byName", "options": "distance"}, "properties": [{"id": "displayName", "value": "里程"}, {"id": "unit", "value": "lengthkm"}, {"id": "decimals", "value": 1}]},
+          {"matcher": {"id": "byName", "options": "distance"}, "properties": [{"id": "displayName", "value": "里程(km)"}, {"id": "unit", "value": "none"}, {"id": "decimals", "value": 1}]},
           {"matcher": {"id": "byName", "options": "duration_min"}, "properties": [{"id": "displayName", "value": "时长(分钟)"}, {"id": "unit", "value": "m"}]},
           {"matcher": {"id": "byName", "options": "speed_max"}, "properties": [{"id": "displayName", "value": "最高时速"}, {"id": "unit", "value": "velocitykmh"}, {"id": "decimals", "value": 0}]},
-          {"matcher": {"id": "byName", "options": "energy_used"}, "properties": [{"id": "displayName", "value": "耗电"}, {"id": "unit", "value": "kwatth"}, {"id": "decimals", "value": 2}]},
+          {"matcher": {"id": "byName", "options": "energy_used"}, "properties": [{"id": "displayName", "value": "耗电(kWh)"}, {"id": "unit", "value": "none"}, {"id": "decimals", "value": 2}]},
           {"matcher": {"id": "byName", "options": "outside_temp_avg"}, "properties": [{"id": "displayName", "value": "均温"}, {"id": "unit", "value": "celsius"}, {"id": "decimals", "value": 1}]}
         ]
       },
