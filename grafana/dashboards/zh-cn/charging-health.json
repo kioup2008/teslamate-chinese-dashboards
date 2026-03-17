@@ -82,7 +82,7 @@
             "mode": "absolute",
             "steps": [{"color": "green"}, {"color": "yellow", "value": 30}, {"color": "red", "value": 50}]
           },
-          "unit": "m",
+          "unit": "none",
           "decimals": 1,
           "displayName": "平均充电时长(分)"
         },

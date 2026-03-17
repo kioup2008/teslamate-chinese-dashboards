@@ -230,9 +230,9 @@
         "defaults": {
           "color": {"mode": "thresholds"},
           "thresholds": {"mode": "absolute", "steps": [{"color": "red"}]},
-          "unit": "velocitykmh",
+          "unit": "none",
           "decimals": 0,
-          "displayName": "最高时速记录"
+          "displayName": "最高时速记录(km/h)"
         },
         "overrides": []
       },

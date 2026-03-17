@@ -56,7 +56,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT COUNT(*) AS park_count\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
@@ -70,7 +72,8 @@
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]},
           "unit": "percent",
-          "decimals": 1
+          "decimals": 1,
+          "displayName": "平均掉电(%)"
         },
         "overrides": []
       },
@@ -89,7 +92,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 1) AS avg_drain\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
@@ -103,7 +108,8 @@
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "orange", "value": null}]},
           "unit": "percent",
-          "decimals": 1
+          "decimals": 1,
+          "displayName": "最大掉电(%)"
         },
         "overrides": []
       },
@@ -122,7 +128,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT MAX(GREATEST(end_battery_level - next_soc, 0)) AS max_drain\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
@@ -135,8 +143,9 @@
           "color": {"fixedColor": "purple", "mode": "fixed"},
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "purple", "value": null}]},
-          "unit": "h",
-          "decimals": 1
+          "unit": "none",
+          "decimals": 1,
+          "displayName": "平均停车时长(h)"
         },
         "overrides": []
       },
@@ -155,7 +164,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT ROUND(AVG(EXTRACT(EPOCH FROM (next_start - end_date))/3600)::numeric, 1) AS avg_hours\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
@@ -211,7 +222,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "time_series",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  date_trunc('month', end_date) AS time,\n  ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 2) AS \"平均掉电%\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
@@ -268,7 +281,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n),\nbuckets AS (\n  SELECT\n    GREATEST(end_battery_level - next_soc, 0) AS drain\n  FROM sessions\n  WHERE next_start IS NOT NULL AND next_start > end_date AND $__timeFilter(end_date)\n)\nSELECT\n  (FLOOR(drain / 5) * 5)::int::text || '~' || (FLOOR(drain / 5) * 5 + 5)::int::text || '%' AS drain_range,\n  COUNT(*) AS park_count\nFROM buckets\nGROUP BY FLOOR(drain / 5)\nORDER BY FLOOR(drain / 5);",
           "refId": "A"
         }
@@ -317,7 +332,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n),\nbuckets AS (\n  SELECT\n    EXTRACT(EPOCH FROM (next_start - end_date))/3600 AS hours\n  FROM sessions\n  WHERE next_start IS NOT NULL AND next_start > end_date AND $__timeFilter(end_date)\n)\nSELECT\n  CASE\n    WHEN hours < 1 THEN '< 1小时'\n    WHEN hours < 4 THEN '1~4小时'\n    WHEN hours < 8 THEN '4~8小时'\n    WHEN hours < 12 THEN '8~12小时'\n    WHEN hours < 24 THEN '12~24小时'\n    WHEN hours < 48 THEN '1~2天'\n    ELSE '> 2天'\n  END AS duration_range,\n  COUNT(*) AS park_count\nFROM buckets\nGROUP BY\n  CASE\n    WHEN hours < 1 THEN 1\n    WHEN hours < 4 THEN 2\n    WHEN hours < 8 THEN 3\n    WHEN hours < 12 THEN 4\n    WHEN hours < 24 THEN 5\n    WHEN hours < 48 THEN 6\n    ELSE 7\n  END,\n  CASE\n    WHEN hours < 1 THEN '< 1小时'\n    WHEN hours < 4 THEN '1~4小时'\n    WHEN hours < 8 THEN '4~8小时'\n    WHEN hours < 12 THEN '8~12小时'\n    WHEN hours < 24 THEN '12~24小时'\n    WHEN hours < 48 THEN '1~2天'\n    ELSE '> 2天'\n  END\nORDER BY\n  CASE\n    WHEN hours < 1 THEN 1\n    WHEN hours < 4 THEN 2\n    WHEN hours < 8 THEN 3\n    WHEN hours < 12 THEN 4\n    WHEN hours < 24 THEN 5\n    WHEN hours < 48 THEN 6\n    ELSE 7\n  END;",
           "refId": "A"
         }
@@ -398,7 +415,9 @@
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
+          "editorMode": "code",
           "format": "table",
+          "rawQuery": true,
           "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  TO_CHAR(end_date AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS \"停车开始\",\n  TO_CHAR(next_start AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS \"停车结束\",\n  ROUND(EXTRACT(EPOCH FROM (next_start - end_date))/3600, 1) AS \"停车时长(小时)\",\n  end_battery_level AS \"停车前SOC%\",\n  next_soc AS \"停车后SOC%\",\n  GREATEST(end_battery_level - next_soc, 0) AS \"掉电%\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date)\nORDER BY GREATEST(end_battery_level - next_soc, 0) DESC\nLIMIT 20;",
           "refId": "A"
         }
@@ -406,7 +425,7 @@
     }
   ],
   "refresh": "",
-  "schemaVersion": 38,
+  "schemaVersion": 41,
   "tags": ["tesla", "battery"],
   "templating": {
     "list": [
