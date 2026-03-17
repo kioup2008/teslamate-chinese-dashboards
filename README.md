@@ -89,14 +89,14 @@
 | 文档 | 说明 | 适合人群 |
 |------|------|----------|
 | **[新手向导](QUICKSTART.md)** | 从零开始安装，含 FAQ | 完全新手 |
-| **[功能地图](DASHBOARD_MAP.md)** | 36个 Dashboard 分类导航 | 新用户 |
+| **[功能地图](DASHBOARD_MAP.md)** | 37个 Dashboard 分类导航 | 新用户 |
 | **[场景速查手册](SCENE_GUIDE.md)** | 什么时候看什么 Dashboard | 所有用户 |
 | **[数据指标手册](METRICS_GUIDE.md)** | 指标解释、正常范围、异常处理 | 进阶用户 |
 | **[故障排查手册](TROUBLESHOOTING.md)** | 遇到问题按症状查解决方案 | 遇到问题时 |
 
 **新手建议**：先看「新手向导」→「功能地图」→「场景速查手册」→「数据指标手册」
 
-## 📁 包含的 Dashboard (36个)
+## 📁 包含的 Dashboard (37个)
 
 ### 核心功能 (4个)
 - ✅ **概览 (Overview)** - 车辆整体状态和关键指标
@@ -394,7 +394,7 @@ docker compose restart grafana
 1. **检查路径**
    ```bash
    ls -la grafana/dashboards/zh-cn/
-   # 应该看到 36 个 JSON 文件
+   # 应该看到 37 个 JSON 文件
    ```
 
 2. **检查权限**
@@ -405,7 +405,8 @@ docker compose restart grafana
 3. **检查 Docker Compose 配置**
    ```yaml
    volumes:
-     - ./grafana/dashboards/zh-cn:/etc/grafana/provisioning/dashboards/zh:ro
+     - ./grafana/dashboards/zh-cn:/dashboards:ro
+     - ./grafana/dashboards/internal:/dashboards_internal:ro
    ```
 
 ### 地图无法加载或显示空白?
@@ -514,11 +515,11 @@ teslamate-chinese-dashboards/
 ├── simple-deploy.sh            # 一键安装脚本
 ├── grafana/
 │   └── dashboards/
-│       ├── zh-cn/              # 31个主要汉化Dashboard → 挂载到 /dashboards/
+│       ├── zh-cn/              # 37个主要汉化Dashboard → 挂载到 /dashboards/
 │       │   ├── overview.json
 │       │   ├── states.json
 │       │   ├── charging-stats.json
-│       │   └── ... (共31个)
+│       │   └── ... (共37个)
 │       └── internal/           # 3个内部详情页 → 挂载到 /dashboards_internal/
 │           ├── home.json
 │           ├── drive-details.json

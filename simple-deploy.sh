@@ -112,9 +112,13 @@ volumes:
   mosquitto-data:
 EOF
 
-# 生成随机加密密钥
+# 生成随机加密密钥（兼容 Linux 和 macOS）
 ENCRYPTION_KEY=$(openssl rand -hex 32)
-sed -i "s/INSERT_RANDOM_KEY_HERE/$ENCRYPTION_KEY/" docker-compose.yml
+if sed --version 2>/dev/null | grep -q GNU; then
+  sed -i "s/INSERT_RANDOM_KEY_HERE/$ENCRYPTION_KEY/" docker-compose.yml
+else
+  sed -i "" "s/INSERT_RANDOM_KEY_HERE/$ENCRYPTION_KEY/" docker-compose.yml
+fi
 
 echo ""
 echo "✅ 配置文件已生成"
