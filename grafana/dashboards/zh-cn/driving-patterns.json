@@ -314,15 +314,10 @@
       "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "continuous-BlYlRd"},
-          "custom": {
-            "pointSize": {"fixed": 5},
-            "axisLabel": ""
-          },
+          "color": {"mode": "palette-classic"},
+          "custom": {"pointSize": {"fixed": 5}},
           "unit": "none",
-          "decimals": 1,
-          "min": 100,
-          "max": 350
+          "decimals": 1
         },
         "overrides": [
           {
@@ -341,11 +336,11 @@
       },
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 26},
       "id": 8,
-      "description": "横轴：室外温度；纵轴：每公里能耗。点颜色由蓝→黄→红映射能耗高低，低温区红点聚集说明冬季电耗更高。仅统计行程距离 > 5km 的记录。",
+      "description": "横轴：室外温度(°C)；纵轴：每公里能耗(Wh/km)。低温时能耗明显升高，反映冬季电池效率下降。仅统计行程距离 > 5km 的记录。",
       "options": {
         "dims": {"x": "outside_temp", "exclude": []},
         "legend": {"displayMode": "list", "placement": "bottom"},
-        "series": [{}],
+        "series": [{"pointColor": {"fixed": "#5794F2"}}],
         "tooltip": {"mode": "single"}
       },
       "pluginVersion": "11.6.1",
