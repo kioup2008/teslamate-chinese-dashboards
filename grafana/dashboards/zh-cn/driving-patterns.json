@@ -108,7 +108,7 @@
         "defaults": {
           "color": {"mode": "thresholds"},
           "thresholds": {"mode": "absolute", "steps": [{"color": "blue"}]},
-          "unit": "watthoursPerKilometer",
+          "unit": "none",
           "decimals": 1,
           "displayName": "工作日平均能耗"
         },
@@ -144,7 +144,7 @@
         "defaults": {
           "color": {"mode": "thresholds"},
           "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
-          "unit": "watthoursPerKilometer",
+          "unit": "none",
           "decimals": 1,
           "displayName": "周末平均能耗"
         },
@@ -224,7 +224,7 @@
         "defaults": {
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 2, "fillOpacity": 10},
-          "unit": "watthoursPerKilometer",
+          "unit": "none",
           "decimals": 1
         },
         "overrides": []
@@ -312,7 +312,7 @@
         "defaults": {
           "color": {"mode": "palette-classic"},
           "custom": {"pointSize": {"fixed": 4}},
-          "unit": "watthoursPerKilometer",
+          "unit": "none",
           "decimals": 1
         },
         "overrides": []

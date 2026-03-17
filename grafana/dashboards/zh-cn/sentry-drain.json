@@ -56,7 +56,7 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
-          "rawSql": "WITH sessions AS (\n  SELECT\n    end_date,\n    end_battery_level,\n    LEAD(start_date) OVER (PARTITION BY car_id ORDER BY start_date) AS next_start,\n    LEAD(start_battery_level) OVER (PARTITION BY car_id ORDER BY start_date) AS next_soc\n  FROM drives\n  WHERE car_id = $car_id AND end_date IS NOT NULL\n)\nSELECT COUNT(*) AS park_count\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT COUNT(*) AS park_count\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
       ]
@@ -89,7 +89,7 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
-          "rawSql": "WITH sessions AS (\n  SELECT\n    end_date,\n    end_battery_level,\n    LEAD(start_date) OVER (PARTITION BY car_id ORDER BY start_date) AS next_start,\n    LEAD(start_battery_level) OVER (PARTITION BY car_id ORDER BY start_date) AS next_soc\n  FROM drives\n  WHERE car_id = $car_id AND end_date IS NOT NULL\n)\nSELECT ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 1) AS avg_drain\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 1) AS avg_drain\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
       ]
@@ -122,7 +122,7 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
-          "rawSql": "WITH sessions AS (\n  SELECT\n    end_date,\n    end_battery_level,\n    LEAD(start_date) OVER (PARTITION BY car_id ORDER BY start_date) AS next_start,\n    LEAD(start_battery_level) OVER (PARTITION BY car_id ORDER BY start_date) AS next_soc\n  FROM drives\n  WHERE car_id = $car_id AND end_date IS NOT NULL\n)\nSELECT MAX(GREATEST(end_battery_level - next_soc, 0)) AS max_drain\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT MAX(GREATEST(end_battery_level - next_soc, 0)) AS max_drain\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
       ]
@@ -155,7 +155,7 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
-          "rawSql": "WITH sessions AS (\n  SELECT\n    end_date,\n    end_battery_level,\n    LEAD(start_date) OVER (PARTITION BY car_id ORDER BY start_date) AS next_start,\n    LEAD(start_battery_level) OVER (PARTITION BY car_id ORDER BY start_date) AS next_soc\n  FROM drives\n  WHERE car_id = $car_id AND end_date IS NOT NULL\n)\nSELECT ROUND(AVG(EXTRACT(EPOCH FROM (next_start - end_date))/3600)::numeric, 1) AS avg_hours\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT ROUND(AVG(EXTRACT(EPOCH FROM (next_start - end_date))/3600)::numeric, 1) AS avg_hours\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
       ]
@@ -211,7 +211,7 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "time_series",
-          "rawSql": "WITH sessions AS (\n  SELECT\n    end_date,\n    end_battery_level,\n    LEAD(start_date) OVER (PARTITION BY car_id ORDER BY start_date) AS next_start,\n    LEAD(start_battery_level) OVER (PARTITION BY car_id ORDER BY start_date) AS next_soc\n  FROM drives\n  WHERE car_id = $car_id AND end_date IS NOT NULL\n)\nSELECT\n  date_trunc('month', end_date) AS time,\n  ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 2) AS \"平均掉电%\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  date_trunc('month', end_date) AS time,\n  ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 2) AS \"平均掉电%\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ]
@@ -268,7 +268,7 @@
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
-          "rawSql": "WITH sessions AS (\n  SELECT\n    end_date,\n    end_battery_level,\n    LEAD(start_date) OVER (PARTITION BY car_id ORDER BY start_date) AS next_start,\n    LEAD(start_battery_level) OVER (PARTITION BY car_id ORDER BY start_date) AS next_soc\n  FROM drives\n  WHERE car_id = $car_id AND end_date IS NOT NULL\n),\nbuckets AS (\n  SELECT\n    GREATEST(end_battery_level - next_soc, 0) AS drain\n  FROM sessions\n  WHERE next_start IS NOT NULL AND next_start > end_date AND $__timeFilter(end_date)\n)\nSELECT\n  (FLOOR(drain / 5) * 5)::int::text || '~' || (FLOOR(drain / 5) * 5 + 5)::int::text || '%' AS drain_range,\n  COUNT(*) AS park_count\nFROM buckets\nGROUP BY FLOOR(drain / 5)\nORDER BY FLOOR(drain / 5);",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n),\nbuckets AS (\n  SELECT\n    GREATEST(end_battery_level - next_soc, 0) AS drain\n  FROM sessions\n  WHERE next_start IS NOT NULL AND next_start > end_date AND $__timeFilter(end_date)\n)\nSELECT\n  (FLOOR(drain / 5) * 5)::int::text || '~' || (FLOOR(drain / 5) * 5 + 5)::int::text || '%' AS drain_range,\n  COUNT(*) AS park_count\nFROM buckets\nGROUP BY FLOOR(drain / 5)\nORDER BY FLOOR(drain / 5);",
           "refId": "A"
         }
       ]

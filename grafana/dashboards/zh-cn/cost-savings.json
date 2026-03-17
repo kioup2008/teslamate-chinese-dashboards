@@ -239,7 +239,9 @@
           "unit": "none",
           "decimals": 2
         },
-        "overrides": []
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "charge_cost"}, "properties": [{"id": "displayName", "value": "充电费用(元)"}]}
+        ]
       },
       "gridPos": {"h": 9, "w": 8, "x": 16, "y": 6},
       "id": 6,
@@ -280,7 +282,9 @@
           "custom": {"axisLabel": "充电量 (kWh)", "fillOpacity": 70},
           "unit": "kwatth"
         },
-        "overrides": []
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "energy_kwh"}, "properties": [{"id": "displayName", "value": "充电电量(kWh)"}]}
+        ]
       },
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
       "id": 7,

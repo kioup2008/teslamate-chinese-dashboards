@@ -261,7 +261,7 @@
         "defaults": {
           "color": {"mode": "thresholds"},
           "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
-          "unit": "watthoursPerKilometer",
+          "unit": "none",
           "decimals": 1,
           "displayName": "年均能耗"
         },
