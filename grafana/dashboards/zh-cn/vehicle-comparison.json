@@ -106,6 +106,7 @@
         "orientation": "horizontal",
         "showValue": "always",
         "stacking": "none",
+        "text": {"valueSize": 14},
         "tooltip": {"mode": "single", "sort": "none"},
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
@@ -160,6 +161,7 @@
         "orientation": "horizontal",
         "showValue": "always",
         "stacking": "none",
+        "text": {"valueSize": 14},
         "tooltip": {"mode": "single", "sort": "none"},
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
@@ -221,6 +223,7 @@
         "orientation": "horizontal",
         "showValue": "always",
         "stacking": "none",
+        "text": {"valueSize": 14},
         "tooltip": {"mode": "single", "sort": "none"},
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
@@ -259,7 +262,9 @@
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 30}, {"color": "red", "value": 50}]},
           "unit": "none",
-          "decimals": 1
+          "decimals": 1,
+          "max": 100,
+          "min": 0
         },
         "overrides": []
       },
@@ -275,6 +280,7 @@
         "orientation": "horizontal",
         "showValue": "always",
         "stacking": "none",
+        "text": {"valueSize": 14},
         "tooltip": {"mode": "single", "sort": "none"},
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
@@ -335,6 +341,7 @@
         "orientation": "horizontal",
         "showValue": "always",
         "stacking": "none",
+        "text": {"valueSize": 14},
         "tooltip": {"mode": "single", "sort": "none"},
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
@@ -389,6 +396,7 @@
         "orientation": "horizontal",
         "showValue": "always",
         "stacking": "none",
+        "text": {"valueSize": 14},
         "tooltip": {"mode": "single", "sort": "none"},
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
@@ -422,7 +430,7 @@
           "decimals": 1,
           "mappings": [],
           "max": 100,
-          "min": 1,
+          "min": 70,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -459,7 +467,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH cap AS (\n  SELECT\n    cp.car_id,\n    c.rated_battery_range_km * (cars.efficiency * 100) / c.usable_battery_level AS capacity,\n    ROW_NUMBER() OVER (PARTITION BY cp.car_id ORDER BY cp.end_date DESC, c.date DESC) AS rn\n  FROM charging_processes cp\n  JOIN charges c ON c.charging_process_id = cp.id\n  JOIN cars ON cars.id = cp.car_id\n  WHERE cp.end_date IS NOT NULL\n    AND cp.charge_energy_added >= cars.efficiency * 100\n    AND c.usable_battery_level > 0\n)\nSELECT\n  COALESCE(cars.name, CONCAT('VIN ', RIGHT(cars.vin, 6))) AS \"车辆\",\n  ROUND(\n    LEAST(100,\n      AVG(CASE WHEN cap.rn <= 100 THEN cap.capacity END) /\n      NULLIF(MAX(cap.capacity), 0) * 100\n    )::numeric, 1\n  ) AS \"电池健康度(%)\"\nFROM cars\nLEFT JOIN cap ON cap.car_id = cars.id\nGROUP BY cars.id, cars.name, cars.vin\nHAVING MAX(cap.capacity) IS NOT NULL\nORDER BY \"电池健康度(%)\" DESC NULLS LAST;",
+          "rawSql": "WITH max_cap AS (\n  SELECT\n    cp.car_id,\n    MAX(c.rated_battery_range_km * (cars.efficiency * 100) / c.usable_battery_level) AS capacity\n  FROM charging_processes cp\n  INNER JOIN (\n    SELECT charging_process_id, MAX(date) AS last_date\n    FROM charges WHERE usable_battery_level > 0\n    GROUP BY charging_process_id\n  ) gcharges ON cp.id = gcharges.charging_process_id\n  INNER JOIN charges c ON c.charging_process_id = cp.id AND c.date = gcharges.last_date\n  INNER JOIN cars ON cars.id = cp.car_id\n  WHERE cp.end_date IS NOT NULL\n    AND cp.charge_energy_added >= cars.efficiency * 100\n  GROUP BY cp.car_id\n),\ncur_cap AS (\n  SELECT car_id, AVG(capacity) AS capacity\n  FROM (\n    SELECT\n      cp.car_id,\n      c.rated_battery_range_km * (cars.efficiency * 100) / c.usable_battery_level AS capacity,\n      ROW_NUMBER() OVER (PARTITION BY cp.car_id ORDER BY cp.end_date DESC, c.date DESC) AS rn\n    FROM charging_processes cp\n    INNER JOIN charges c ON c.charging_process_id = cp.id\n    INNER JOIN cars ON cars.id = cp.car_id\n    WHERE cp.end_date IS NOT NULL\n      AND cp.charge_energy_added >= cars.efficiency * 100\n      AND c.usable_battery_level > 0\n  ) t\n  WHERE rn <= 100\n  GROUP BY car_id\n)\nSELECT\n  COALESCE(cars.name, CONCAT('VIN ', RIGHT(cars.vin, 6))) AS \"车辆\",\n  ROUND(LEAST(100, cur_cap.capacity / NULLIF(max_cap.capacity, 0) * 100)::numeric, 1) AS \"电池健康度(%)\"\nFROM cars\nLEFT JOIN max_cap ON max_cap.car_id = cars.id\nLEFT JOIN cur_cap ON cur_cap.car_id = cars.id\nWHERE max_cap.capacity IS NOT NULL\nORDER BY \"电池健康度(%)\" DESC NULLS LAST;",
           "refId": "A",
           "sql": {"columns": [{"parameters": [], "type": "function"}], "groupBy": [{"property": {"type": "string"}, "type": "groupBy"}], "limit": 50}
         }
