@@ -10,7 +10,7 @@
 TeslaMate 是一个**开源**的特斯拉数据记录工具。它会自动收集你的车辆数据（每次行程、充电、电池状态等），保存在你自己的服务器上。数据完全属于你，不经过任何第三方。
 
 ### 本项目是什么？
-TeslaMate 官方的 Grafana 图表是英文的。本项目提供了 **31 个简体中文汉化版图表**，把所有界面翻译成中文，开箱即用。
+TeslaMate 官方的 Grafana 图表是英文的。本项目提供了 **37 个简体中文汉化版图表**（含 6 个原创分析仪表盘），把所有界面翻译成中文，开箱即用。
 
 ### 整体架构（你不需要完全理解，但有个概念更好）
 
@@ -191,7 +191,7 @@ TeslaMate 使用 **Tesla 官方 OAuth** 授权（不需要输入密码到 TeslaM
 
 ### 界面说明
 
-登录后你会看到左侧导航栏，点击 **Dashboards** 查看所有 31 个中文图表。
+登录后你会看到左侧导航栏，点击 **Dashboards** 查看所有 37 个中文图表。
 
 **推荐第一次看这几个：**
 1. **概览** — 车辆当前整体状态
@@ -293,7 +293,7 @@ docker compose restart grafana
 | 文档 | 内容 |
 |------|------|
 | [SCENE_GUIDE.md](SCENE_GUIDE.md) | 什么场景看什么 Dashboard |
-| [DASHBOARD_MAP.md](DASHBOARD_MAP.md) | 31 个 Dashboard 导航地图 |
+| [DASHBOARD_MAP.md](DASHBOARD_MAP.md) | 37 个 Dashboard 导航地图 |
 | [METRICS_GUIDE.md](METRICS_GUIDE.md) | 各项数据指标解释 |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 遇到问题怎么解决 |
 

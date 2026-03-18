@@ -193,7 +193,7 @@ docker compose logs grafana
 open http://localhost:3000
 
 # 4. 验证 Dashboard
-# 登录后应该看到 36 个中文 Dashboard
+# 登录后应该看到 37 个中文 Dashboard
 ```
 
 ### 方法二：一键安装脚本
