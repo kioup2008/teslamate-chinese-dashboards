@@ -268,13 +268,13 @@
             "y": "B - 平均功率 [kW]"
           }
         ],
-        "seriesMapping": "manual",
         "tooltip": {
           "mode": "multi",
           "sort": "none"
-        }
+        },
+        "mapping": "manual"
       },
-      "pluginVersion": "7.5.11",
+      "pluginVersion": "12.0.0",
       "targets": [
         {
           "alias": "",
