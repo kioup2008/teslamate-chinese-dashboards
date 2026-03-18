@@ -191,7 +191,7 @@ TeslaMate 使用 **Tesla 官方 OAuth** 授权（不需要输入密码到 TeslaM
 
 ### 界面说明
 
-登录后你会看到左侧导航栏，点击 **Dashboards** 查看所有 37 个中文图表。
+登录后你会看到左侧导航栏，点击 **Dashboards** 查看所有 38 个中文图表。
 
 **推荐第一次看这几个：**
 1. **概览** — 车辆当前整体状态
@@ -293,7 +293,7 @@ docker compose restart grafana
 | 文档 | 内容 |
 |------|------|
 | [SCENE_GUIDE.md](SCENE_GUIDE.md) | 什么场景看什么 Dashboard |
-| [DASHBOARD_MAP.md](DASHBOARD_MAP.md) | 37 个 Dashboard 导航地图 |
+| [DASHBOARD_MAP.md](DASHBOARD_MAP.md) | 38 个 Dashboard 导航地图 |
 | [METRICS_GUIDE.md](METRICS_GUIDE.md) | 各项数据指标解释 |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 遇到问题怎么解决 |
 

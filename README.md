@@ -2,7 +2,7 @@
 
 **TeslaMate Chinese Grafana Dashboards** — Simplified Chinese localization for TeslaMate, ready to use out of the box.
 
-简体中文汉化版 TeslaMate Grafana Dashboard - 开箱即用 | 37个仪表板 100% 汉化 | 支持 Docker 一键部署
+简体中文汉化版 TeslaMate Grafana Dashboard - 开箱即用 | 38个仪表板 100% 汉化 | 支持 Docker 一键部署
 
 > 🚗 基于 [TeslaMate](https://github.com/teslamate-org/teslamate) 项目的 Grafana Dashboard 汉化版本
 >
@@ -64,14 +64,14 @@
 - ✅ **开箱即用** - 无需 Docker Hub 账号，直接挂载使用
 - ✅ **一键安装** - 提供多种安装方式，5分钟完成部署
 - ✅ **持续更新** - 通过 git pull 即可获取最新汉化
-- ✅ **完全汉化** - 37个 Dashboard，含6个全新原创分析图表
+- ✅ **完全汉化** - 38个 Dashboard，含7个全新原创分析图表
 - ✅ **完整地图** - 支持 OpenStreetMap 地图服务
 
 ## 📊 汉化成果
 
 | 指标 | 数值 |
 | --- | --- |
-| Dashboard 数量 | 37个 ✅ |
+| Dashboard 数量 | 38个 ✅ |
 | 内部详情页 | 3个（行程/充电详情）|
 | 文件总大小 | ~1.2MB |
 | 面板总数 | 295个 |
@@ -89,14 +89,14 @@
 | 文档 | 说明 | 适合人群 |
 |------|------|----------|
 | **[新手向导](QUICKSTART.md)** | 从零开始安装，含 FAQ | 完全新手 |
-| **[功能地图](DASHBOARD_MAP.md)** | 37个 Dashboard 分类导航 | 新用户 |
+| **[功能地图](DASHBOARD_MAP.md)** | 38个 Dashboard 分类导航 | 新用户 |
 | **[场景速查手册](SCENE_GUIDE.md)** | 什么时候看什么 Dashboard | 所有用户 |
 | **[数据指标手册](METRICS_GUIDE.md)** | 指标解释、正常范围、异常处理 | 进阶用户 |
 | **[故障排查手册](TROUBLESHOOTING.md)** | 遇到问题按症状查解决方案 | 遇到问题时 |
 
 **新手建议**：先看「新手向导」→「功能地图」→「场景速查手册」→「数据指标手册」
 
-## 📁 包含的 Dashboard (37个)
+## 📁 包含的 Dashboard (38个)
 
 ### 核心功能 (4个)
 - ✅ **概览 (Overview)** - 车辆整体状态和关键指标
@@ -137,13 +137,14 @@
 - ✅ **车辆里程曲线图 (Mileage)** - 里程趋势图
 - ✅ **不完整的数据 (Incomplete Data)** - 数据完整性检查
 
-### 其他功能 (6个)
+### 其他功能 (7个)
 - ✅ **时间线 (Timeline)** - 事件时间轴
 - ✅ **访问过的地点 (Locations)** - 常去地点统计
 - ✅ **足迹地图 (Visited)** - 行驶轨迹地图
 - ✅ **数据库信息 (Database Info)** - 系统信息监控
 - ✅ **系统更新 (Updates)** - 软件更新记录
 - 🆕 **省钱分析** - 与燃油车对比节省费用，可自定义油价/油耗/预算
+- 🆕 **多车对比** - 名下所有车辆里程/能耗/费用横向对比，自动适配车辆数量
 
 ---
 
@@ -152,11 +153,11 @@
 | 类别 | 数量 | 占比 | 主要功能 |
 |------|------|------|----------|
 | 核心功能 | 4 | 11% | 概览、状态、统计汇总 |
-| 充电相关 | 11 | 30% | 充电监控、成本、电池健康、哨兵耗电 |
-| 驾驶相关 | 10 | 27% | 行程记录、轨迹、规律分析、年度报告、动能回收 |
+| 充电相关 | 11 | 29% | 充电监控、成本、电池健康、哨兵耗电 |
+| 驾驶相关 | 10 | 26% | 行程记录、轨迹、规律分析、年度报告、动能回收 |
 | 车辆状态 | 6 | 16% | 实时状态、胎压、能效 |
-| 其他功能 | 6 | 16% | 地图、时间线、省钱分析 |
-| **总计** | **37** | **100%** | **全方位车辆数据分析** |
+| 其他功能 | 7 | 18% | 地图、时间线、省钱分析、多车对比 |
+| **总计** | **38** | **100%** | **全方位车辆数据分析** |
 
 ## 🚀 快速开始
 
@@ -193,7 +194,7 @@ docker compose logs grafana
 open http://localhost:3000
 
 # 4. 验证 Dashboard
-# 登录后应该看到 37 个中文 Dashboard
+# 登录后应该看到 38 个中文 Dashboard
 ```
 
 ### 方法二：一键安装脚本
@@ -394,7 +395,7 @@ docker compose restart grafana
 1. **检查路径**
    ```bash
    ls -la grafana/dashboards/zh-cn/
-   # 应该看到 37 个 JSON 文件
+   # 应该看到 38 个 JSON 文件
    ```
 
 2. **检查权限**
@@ -440,7 +441,7 @@ docker compose restart grafana
 ### 当前版本
 - **版本号**: v1.3.0
 - **发布日期**: 2026-03-17
-- **Dashboard 数量**: 37个（含6个原创分析仪表盘 + 3个内部详情页）
+- **Dashboard 数量**: 38个（含7个原创分析仪表盘 + 3个内部详情页）
 - **汉化完成度**: 100%
 
 ### 兼容性
@@ -453,7 +454,7 @@ docker compose restart grafana
 ### 更新日志
 
 #### v1.3.0 (2026-03-17)
-- 🆕 新增6个原创分析仪表盘
+- 🆕 新增7个原创分析仪表盘
   - **年度驾驶报告** — 年度里程/充电/能耗汇总，常去地点 & 充电站 TOP10
   - **省钱分析** — 燃油对比节省金额、充电时段费用分布、年度预算进度
   - **充电健康管理** — 充电习惯评分、充至100%/低电量占比、SOC 分布统计
@@ -515,11 +516,11 @@ teslamate-chinese-dashboards/
 ├── simple-deploy.sh            # 一键安装脚本
 ├── grafana/
 │   └── dashboards/
-│       ├── zh-cn/              # 37个主要汉化Dashboard → 挂载到 /dashboards/
+│       ├── zh-cn/              # 38个主要汉化Dashboard → 挂载到 /dashboards/
 │       │   ├── overview.json
 │       │   ├── states.json
 │       │   ├── charging-stats.json
-│       │   └── ... (共37个)
+│       │   └── ... (共38个)
 │       └── internal/           # 3个内部详情页 → 挂载到 /dashboards_internal/
 │           ├── home.json
 │           ├── drive-details.json
