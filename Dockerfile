@@ -11,10 +11,6 @@ ENV GF_DEFAULT_LANGUAGE=zh-Hans
 ENV GF_USERS_DEFAULT_LANGUAGE=zh-Hans
 ENV GF_USERS_DEFAULT_LOCALE=zh-Hans
 
-# 显式声明数据库默认值（基础镜像已有，这里再写一遍防止上游变更导致隐式依赖失效）
-ENV DATABASE_PORT=5432
-ENV DATABASE_SSL_MODE=disable
-
 # 清除基础镜像自带的所有数据源配置（避免 TeslaMate.yml 等旧文件与新配置同时加载导致 ×2 报错）
 # 再写入唯一的数据源配置文件
 USER root
