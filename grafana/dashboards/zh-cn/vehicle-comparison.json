@@ -418,53 +418,41 @@
       "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
-            "lineWidth": 1,
-            "scaleDistribution": {"type": "linear"},
-            "thresholdsStyle": {"mode": "line+area"}
-          },
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
           "mappings": [],
+          "max": 100,
+          "min": 1,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": null},
-              {"color": "orange", "value": 85},
-              {"color": "green", "value": 90}
+              {"color": "light-red", "value": null},
+              {"color": "#EAB839", "value": 80},
+              {"color": "light-green", "value": 90}
             ]
           },
-          "unit": "none",
-          "decimals": 1,
-          "min": 70,
-          "max": 100
+          "unit": "%"
         },
         "overrides": []
       },
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 36},
       "id": 13,
-      "description": "与官方电池健康度面板算法一致：取最近100次充电的平均容量 / 历史最大容量 × 100%。红色<85%、橙色85-90%、绿色>90%。",
+      "description": "与官方电池健康度面板算法一致：取最近100次充电的平均容量 / 历史最大容量 × 100%。渐变色展示，与官方电池健康度页面视觉风格一致。",
       "options": {
-        "barRadius": 0.05,
-        "barWidth": 0.6,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": false},
+        "displayMode": "gradient",
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false},
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "auto",
         "orientation": "horizontal",
-        "showValue": "always",
-        "stacking": "none",
-        "tooltip": {"mode": "single", "sort": "none"},
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 200
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
       },
       "title": "各车电池健康度(%)",
-      "type": "barchart",
+      "type": "bargauge",
       "targets": [
         {
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
