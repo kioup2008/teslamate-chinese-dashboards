@@ -1326,7 +1326,7 @@
         "current": {
           "selected": true,
           "text": "否",
-          "value": "no"
+          "value": "0"
         },
         "description": "启用后，\"平均能耗（总值）\"将通过以下方式计算 位置数据而不是充电过程和行程.\n\n虽然这样更准确 (特别对于较短的时间段) 这在较慢的硬件上会很慢！",
         "includeAll": false,
@@ -1336,15 +1336,15 @@
           {
             "selected": true,
             "text": "否",
-            "value": "no"
+            "value": "0"
           },
           {
             "selected": false,
             "text": "是",
-            "value": "yes"
+            "value": "1"
           }
         ],
-        "query": "是 : yes,否 : no",
+        "query": "是 : 1,否 : 0",
         "type": "custom"
       }
     ]
