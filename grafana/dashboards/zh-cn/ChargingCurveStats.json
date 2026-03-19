@@ -117,8 +117,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-YlRd",
-            "seriesBy": "last"
+            "mode": "continuous-RdYlGr"
           },
           "custom": {
             "axisCenteredZero": false,
@@ -231,12 +230,7 @@
       "id": 29,
       "links": [],
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
+        "mapping": "manual",
         "series": [
           {
             "frame": {
@@ -301,8 +295,15 @@
             }
           }
         ],
-        "mapping": "manual",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "tooltip": {
+          "hideZeros": false,
+          "maxHeight": 600,
           "mode": "single",
           "sort": "none"
         }
@@ -404,7 +405,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "continuous-YlRd"
+            "mode": "continuous-RdYlGr"
           },
           "custom": {
             "axisCenteredZero": false,
@@ -517,12 +518,7 @@
       "id": 32,
       "links": [],
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
+        "mapping": "manual",
         "series": [
           {
             "frame": {
@@ -587,8 +583,15 @@
             }
           }
         ],
-        "mapping": "manual",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
         "tooltip": {
+          "hideZeros": false,
+          "maxHeight": 600,
           "mode": "single",
           "sort": "none"
         }
