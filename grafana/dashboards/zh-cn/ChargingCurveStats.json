@@ -369,7 +369,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  c.battery_level as \"B - 电量 [%]\",\n  PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY charger_power) as \"B - 平均功率 [kW]\"\nFROM\n  charges c\nJOIN charging_processes p ON p.id = c.charging_process_id \nJOIN addresses a ON a.id = p.address_id\nLEFT JOIN geofences g ON g.id = p.geofence_id\nWHERE\n  $__timeFilter(date)\n AND p.car_id = $car_id\n AND c.battery_level >= $filter_soc_from AND c.battery_level <= $filter_soc_to\n AND charger_power >= $filter_power_from AND charger_power <= $filter_power_to\n AND c.fast_charger_present\n AND (COALESCE(g.name, a.name) ILIKE '%supercharger%' OR COALESCE(g.name, a.name) ILIKE '%超级充电%') \nGROUP BY \"B - 电量 [%]\"",
+          "rawSql": "SELECT\n  c.battery_level as \"B - 电量 [%]\",\n  PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY charger_power) as \"B - 平均功率 [kW]\"\nFROM\n  charges c\nJOIN charging_processes p ON p.id = c.charging_process_id \nJOIN addresses a ON a.id = p.address_id\nLEFT JOIN geofences g ON g.id = p.geofence_id\nWHERE\n  $__timeFilter(date)\n AND p.car_id = $car_id\n AND c.battery_level >= $filter_soc_from AND c.battery_level <= $filter_soc_to\n AND charger_power >= $filter_power_from AND charger_power <= $filter_power_to\n AND c.fast_charger_present\n AND (COALESCE(g.name, a.name) ILIKE '%supercharger%' OR COALESCE(g.name, a.name) ILIKE '%超级充电%') \nGROUP BY c.battery_level",
           "refId": "B",
           "select": [
             [
@@ -655,7 +655,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  c.battery_level as \"B - 电量 [%]\",\n  PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY charger_power) as \"B - 平均功率 [kW]\"\nFROM\n  charges c\nJOIN charging_processes p ON p.id = c.charging_process_id \nJOIN addresses a ON a.id = p.address_id\nLEFT JOIN geofences g ON g.id = p.geofence_id\nWHERE\n  $__timeFilter(date)\n AND p.car_id = $car_id\n AND c.battery_level >= $filter_soc_from AND c.battery_level <= $filter_soc_to\n AND charger_power >= $filter_power_from AND charger_power <= $filter_power_to\n AND c.fast_charger_present\n AND COALESCE(g.name, a.name) NOT ILIKE '%supercharger%' AND COALESCE(g.name, a.name) NOT ILIKE '%超级充电%' \nGROUP BY \"B - 电量 [%]\"",
+          "rawSql": "SELECT\n  c.battery_level as \"B - 电量 [%]\",\n  PERCENTILE_CONT(0.5) WITHIN GROUP(ORDER BY charger_power) as \"B - 平均功率 [kW]\"\nFROM\n  charges c\nJOIN charging_processes p ON p.id = c.charging_process_id \nJOIN addresses a ON a.id = p.address_id\nLEFT JOIN geofences g ON g.id = p.geofence_id\nWHERE\n  $__timeFilter(date)\n AND p.car_id = $car_id\n AND c.battery_level >= $filter_soc_from AND c.battery_level <= $filter_soc_to\n AND charger_power >= $filter_power_from AND charger_power <= $filter_power_to\n AND c.fast_charger_present\n AND COALESCE(g.name, a.name) NOT ILIKE '%supercharger%' AND COALESCE(g.name, a.name) NOT ILIKE '%超级充电%' \nGROUP BY c.battery_level",
           "refId": "B",
           "select": [
             [
