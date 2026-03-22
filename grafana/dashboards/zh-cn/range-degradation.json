@@ -66,7 +66,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(\n  CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n  ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n)::numeric, 0) AS current_range\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL\n  AND c.date >= NOW() - INTERVAL '90 days';",
+          "rawSql": "SELECT ROUND(AVG(\n  CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n  ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n)::numeric, 0) AS "当前满电续航(km)"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL\n  AND c.date >= NOW() - INTERVAL '90 days';",
           "refId": "A"
         }
       ]
@@ -103,7 +103,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(\n  CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n  ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n)::numeric, 0) AS initial_range\nFROM (\n  SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id\n    AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL\n    AND c.ideal_battery_range_km IS NOT NULL\n  ORDER BY c.date ASC\n  LIMIT 20\n) t;",
+          "rawSql": "SELECT ROUND(AVG(\n  CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n  ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n)::numeric, 0) AS "初始满电续航(km)"\nFROM (\n  SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id\n    AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL\n    AND c.ideal_battery_range_km IS NOT NULL\n  ORDER BY c.date ASC\n  LIMIT 20\n) t;",
           "refId": "A"
         }
       ]
@@ -140,7 +140,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH initial AS (\n  SELECT ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n    ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n  )::numeric, 0) AS v\n  FROM (\n    SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n    FROM charges c\n    JOIN charging_processes cp ON cp.id = c.charging_process_id\n    WHERE cp.car_id = $car_id AND c.battery_level >= 95\n      AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    ORDER BY c.date ASC LIMIT 20\n  ) t\n),\ncurrent AS (\n  SELECT ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS v\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    AND c.date >= NOW() - INTERVAL '90 days'\n)\nSELECT GREATEST(i.v - c.v, 0) AS degraded_km\nFROM initial i, current c;",
+          "rawSql": "WITH initial AS (\n  SELECT ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n    ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n  )::numeric, 0) AS v\n  FROM (\n    SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n    FROM charges c\n    JOIN charging_processes cp ON cp.id = c.charging_process_id\n    WHERE cp.car_id = $car_id AND c.battery_level >= 95\n      AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    ORDER BY c.date ASC LIMIT 20\n  ) t\n),\ncurrent AS (\n  SELECT ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS v\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    AND c.date >= NOW() - INTERVAL '90 days'\n)\nSELECT GREATEST(i.v - c.v, 0) AS "已退化续航(km)"\nFROM initial i, current c;",
           "refId": "A"
         }
       ]
@@ -187,7 +187,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH initial AS (\n  SELECT AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n    ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n  ) AS v\n  FROM (\n    SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n    FROM charges c\n    JOIN charging_processes cp ON cp.id = c.charging_process_id\n    WHERE cp.car_id = $car_id AND c.battery_level >= 95\n      AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    ORDER BY c.date ASC LIMIT 20\n  ) t\n),\ncurrent AS (\n  SELECT AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  ) AS v\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    AND c.date >= NOW() - INTERVAL '90 days'\n)\nSELECT ROUND(GREATEST((1 - c.v / NULLIF(i.v, 0)) * 100, 0)::numeric, 1) AS degradation_pct\nFROM initial i, current c;",
+          "rawSql": "WITH initial AS (\n  SELECT AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n    ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n  ) AS v\n  FROM (\n    SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n    FROM charges c\n    JOIN charging_processes cp ON cp.id = c.charging_process_id\n    WHERE cp.car_id = $car_id AND c.battery_level >= 95\n      AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    ORDER BY c.date ASC LIMIT 20\n  ) t\n),\ncurrent AS (\n  SELECT AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  ) AS v\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    AND c.date >= NOW() - INTERVAL '90 days'\n)\nSELECT ROUND(GREATEST((1 - c.v / NULLIF(i.v, 0)) * 100, 0)::numeric, 1) AS "退化率(%)"\nFROM initial i, current c;",
           "refId": "A"
         }
       ]
@@ -360,6 +360,14 @@
       "description": "数据质量指标：采样次数越多，退化趋势越准确",
       "title": "数据质量",
       "type": "stat",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/.*/", "values": true },
+        "textMode": "value_and_name"
+      },
       "targets": [
         {
           "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
