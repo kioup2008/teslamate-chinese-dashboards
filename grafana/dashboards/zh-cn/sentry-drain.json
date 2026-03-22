@@ -275,7 +275,7 @@
           },
           "unit": "none",
           "decimals": 1,
-          "displayName": "平均停车时长(h)"
+          "displayName": "停车时长(h)"
         },
         "overrides": []
       },
@@ -295,12 +295,12 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "fields": "/.*/",
+          "values": true
         },
-        "textMode": "auto"
+        "textMode": "value_and_name"
       },
-      "title": "",
+      "title": "停车时长对比",
       "type": "stat",
       "targets": [
         {
@@ -311,7 +311,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT ROUND(AVG(EXTRACT(EPOCH FROM (next_start - end_date))/3600)::numeric, 1) AS avg_hours\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  ROUND(AVG(EXTRACT(EPOCH FROM (next_start - end_date))/3600)::numeric, 1) AS \"平均时长(h)\",\n  ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (next_start - end_date))/3600)::numeric, 1) AS \"中位时长(h)\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date);",
           "refId": "A"
         }
       ]
