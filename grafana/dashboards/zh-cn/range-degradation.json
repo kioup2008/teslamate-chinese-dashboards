@@ -1,0 +1,476 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "标注与警报",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "tags": ["tesla"],
+      "title": "仪表盘",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "续航概览",
+      "type": "row",
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "green", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "none",
+          "decimals": 0,
+          "displayName": "当前满电续航(km)"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "description": "最近90天内电量≥95%时的平均推算满电续航",
+      "title": "",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(AVG(\n  CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n  ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n)::numeric, 0) AS current_range\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL\n  AND c.date >= NOW() - INTERVAL '90 days';",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "none",
+          "decimals": 0,
+          "displayName": "初始满电续航(km)"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "description": "根据最早20次近满电充电记录自动推算出厂续航基准",
+      "title": "",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(AVG(\n  CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n  ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n)::numeric, 0) AS initial_range\nFROM (\n  SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id\n    AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL\n    AND c.ideal_battery_range_km IS NOT NULL\n  ORDER BY c.date ASC\n  LIMIT 20\n) t;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "fixedColor": "orange", "mode": "fixed" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
+          "unit": "none",
+          "decimals": 0,
+          "displayName": "已退化续航(km)"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "description": "初始续航 − 当前续航",
+      "title": "",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH initial AS (\n  SELECT ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n    ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n  )::numeric, 0) AS v\n  FROM (\n    SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n    FROM charges c\n    JOIN charging_processes cp ON cp.id = c.charging_process_id\n    WHERE cp.car_id = $car_id AND c.battery_level >= 95\n      AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    ORDER BY c.date ASC LIMIT 20\n  ) t\n),\ncurrent AS (\n  SELECT ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS v\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    AND c.date >= NOW() - INTERVAL '90 days'\n)\nSELECT GREATEST(i.v - c.v, 0) AS degraded_km\nFROM initial i, current c;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "orange", "value": 10 },
+              { "color": "red", "value": 15 }
+            ]
+          },
+          "unit": "none",
+          "decimals": 1,
+          "displayName": "退化率(%)"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "description": "已退化续航 ÷ 初始续航 × 100%。绿色<5% 正常，黄色5-10% 轻微，橙色10-15% 明显，红色>15% 需关注",
+      "title": "",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH initial AS (\n  SELECT AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN t.ideal_battery_range_km\n    ELSE t.rated_battery_range_km END * 100.0 / t.battery_level\n  ) AS v\n  FROM (\n    SELECT c.rated_battery_range_km, c.ideal_battery_range_km, c.battery_level\n    FROM charges c\n    JOIN charging_processes cp ON cp.id = c.charging_process_id\n    WHERE cp.car_id = $car_id AND c.battery_level >= 95\n      AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    ORDER BY c.date ASC LIMIT 20\n  ) t\n),\ncurrent AS (\n  SELECT AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  ) AS v\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id AND c.battery_level >= 95\n    AND c.rated_battery_range_km IS NOT NULL AND c.ideal_battery_range_km IS NOT NULL\n    AND c.date >= NOW() - INTERVAL '90 days'\n)\nSELECT ROUND(GREATEST((1 - c.v / NULLIF(i.v, 0)) * 100, 0)::numeric, 1) AS degradation_pct\nFROM initial i, current c;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 101,
+      "panels": [],
+      "title": "退化趋势",
+      "type": "row",
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "续航(km)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 7 },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": ["min", "max", "last"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "description": "每周采样一次，取电量≥95%时的推算满电续航均值。数据点越密集说明近满电充电越频繁",
+      "title": "满电续航退化趋势（按周）",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('week', c.date) AS time,\n  ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS \"满电续航(km)\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "id": 102,
+      "panels": [],
+      "title": "月度统计",
+      "type": "row",
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "续航(km)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "mappings": [],
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 20 },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "min"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "description": "每月平均满电续航，趋势向下说明电池在退化",
+      "title": "每月平均满电续航(km)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('month', c.date) AS time,\n  ROUND(AVG(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS \"月均满电续航(km)\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "近满电采样次数" },
+            "properties": [{ "id": "displayName", "value": "近满电采样次数" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "最高电量(%)" },
+            "properties": [{ "id": "displayName", "value": "最高电量(%)" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "最高续航(km)" },
+            "properties": [{ "id": "displayName", "value": "最高续航(km)" }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 20 },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      },
+      "description": "数据质量指标：采样次数越多，退化趋势越准确",
+      "title": "数据质量",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  COUNT(*) AS \"近满电采样次数\",\n  MAX(c.battery_level) AS \"最高电量(%)\",\n  ROUND(MAX(\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS \"最高续航(km)\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL;",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "id": 103,
+      "panels": [],
+      "title": "原始数据散点",
+      "type": "row",
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-BlYlRd" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "续航(km)",
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "points",
+            "fillOpacity": 50,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "always",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "mappings": [],
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
+      "id": 8,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "description": "每个点代表一次电量≥95%的充电记录推算出的满电续航。点越分散说明数据噪声越大（受温度、SOC校准影响）",
+      "title": "近满电充电续航散点（原始数据）",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  c.date AS time,\n  ROUND((\n    CASE WHEN '$preferred_range' = 'ideal' THEN c.ideal_battery_range_km\n    ELSE c.rated_battery_range_km END * 100.0 / c.battery_level\n  )::numeric, 0) AS \"推算满电续航(km)\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.battery_level >= 95\n  AND c.rated_battery_range_km IS NOT NULL\n  AND c.ideal_battery_range_km IS NOT NULL\nORDER BY c.date;",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 41,
+  "tags": ["tesla"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+        "definition": "SELECT\n    id as __value,\n    CASE WHEN COUNT(id) OVER (PARTITION BY name) > 1 AND name IS NOT NULL THEN CONCAT(name, ' - ', RIGHT(vin, 6)) ELSE COALESCE(name, CONCAT('VIN ', vin)) end as __text \nFROM cars\nORDER BY display_priority ASC, name ASC, vin ASC;",
+        "hide": 0,
+        "includeAll": false,
+        "label": "车辆",
+        "name": "car_id",
+        "options": [],
+        "query": "SELECT\n    id as __value,\n    CASE WHEN COUNT(id) OVER (PARTITION BY name) > 1 AND name IS NOT NULL THEN CONCAT(name, ' - ', RIGHT(vin, 6)) ELSE COALESCE(name, CONCAT('VIN ', vin)) end as __text \nFROM cars\nORDER BY display_priority ASC, name ASC, vin ASC;",
+        "refresh": 1,
+        "regex": "",
+        "type": "query",
+        "regexApplyTo": "value"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "TeslaMate" },
+        "definition": "SELECT preferred_range FROM settings LIMIT 1",
+        "hide": 2,
+        "includeAll": false,
+        "name": "preferred_range",
+        "options": [],
+        "query": "SELECT preferred_range FROM settings LIMIT 1",
+        "refresh": 1,
+        "regex": "",
+        "type": "query",
+        "regexApplyTo": "value"
+      }
+    ]
+  },
+  "time": { "from": "now-2y", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "续航退化分析",
+  "uid": "range_degrad_cn",
+  "version": 1
+}

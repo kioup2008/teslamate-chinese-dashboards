@@ -2,7 +2,7 @@
 
 **TeslaMate Chinese Grafana Dashboards** — Simplified Chinese localization for TeslaMate, ready to use out of the box.
 
-简体中文汉化版 TeslaMate Grafana Dashboard - 开箱即用 | 38个仪表板 99% 汉化 | 支持 Docker 一键部署
+简体中文汉化版 TeslaMate Grafana Dashboard - 开箱即用 | 39个仪表板 99% 汉化 | 支持 Docker 一键部署
 
 > 🚗 基于 [TeslaMate](https://github.com/teslamate-org/teslamate) 项目的 Grafana Dashboard 汉化版本
 >
@@ -67,7 +67,7 @@
 - ✅ **开箱即用** - 无需 Docker Hub 账号，直接挂载使用
 - ✅ **一键安装** - 提供多种安装方式，5分钟完成部署
 - ✅ **持续更新** - 通过 git pull 即可获取最新汉化
-- ✅ **深度汉化** - 38个 Dashboard，含7个全新原创分析图表
+- ✅ **深度汉化** - 39个 Dashboard，含8个全新原创分析图表
 - ✅ **完整地图** - 支持 OpenStreetMap 地图服务
 - ✅ **完整适配 TeslaMate 3.0** - 同步官方全部新特性，已验证兼容 Grafana 12.4.0
 
@@ -75,7 +75,7 @@
 
 | 指标 | 数值 |
 | --- | --- |
-| Dashboard 数量 | 38个 ✅ |
+| Dashboard 数量 | 39个 ✅ |
 | 内部详情页 | 3个（行程/充电详情）|
 | 文件总大小 | ~1.2MB |
 | 面板总数 | 295个 |
@@ -84,7 +84,7 @@
 | 质量等级 | A+ |
 | 最后更新 | 2026-03-22 |
 
-**38个 Dashboard 深度汉化，持续优化中，开箱即用！** 🎉
+**39个 Dashboard 深度汉化，持续优化中，开箱即用！** 🎉
 
 ## 📚 使用文档
 
@@ -117,6 +117,7 @@
 - ✅ **快充曲线图-按运营商 (DC Charging Curves)** - 不同运营商充电对比
 - ✅ **电池容量曲线图 (Charge Level)** - 电池容量趋势
 - ✅ **电池健康度 (Battery Health)** - 电池退化监控
+- 🆕 **续航退化分析** - 满电续航趋势、退化率、月度统计、原始数据散点
 - ✅ **续航曲线图 (Projected Range)** - 预计续航分析
 - 🆕 **充电健康管理** - 充电习惯评分、快充占比、SOC分布分析
 - 🆕 **哨兵模式耗电分析** - 哨兵开启时长、耗电估算、地点分布
