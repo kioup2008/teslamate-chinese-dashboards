@@ -852,7 +852,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('month', start_date) AS time,\n  ROUND(COALESCE(SUM(cost), 0)::numeric, 2) AS \"充电费用\"\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM start_date) = $year::int\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  make_date(2000, EXTRACT(MONTH FROM start_date)::int, 1) AS time,\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN cost END), 0)::numeric, 2) AS \"今年\",\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1 THEN cost END), 0)::numeric, 2) AS \"去年\",\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) - 2 THEN cost END), 0)::numeric, 2) AS \"前年\"\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM start_date) >= EXTRACT(YEAR FROM CURRENT_DATE) - 2\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ],
