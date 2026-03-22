@@ -274,8 +274,7 @@
             ]
           },
           "unit": "none",
-          "decimals": 1,
-          "displayName": "停车时长(h)"
+          "decimals": 1
         },
         "overrides": []
       },
