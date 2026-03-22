@@ -2071,7 +2071,7 @@
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "",
+  "timezone": "browser",
   "title": "充电详情",
   "uid": "BHhxFeZRz",
   "version": 1
