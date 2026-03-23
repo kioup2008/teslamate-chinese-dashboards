@@ -178,7 +178,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "续航损失"
+                "value": "续航损失(km)"
               },
               {
                 "id": "unit",
@@ -247,7 +247,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "每小时续航损失"
+                "value": "每小时续航损失(km/h)"
               },
               {
                 "id": "unit",
@@ -332,7 +332,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "耗电量"
+                "value": "耗电量(kWh)"
               },
               {
                 "id": "unit",

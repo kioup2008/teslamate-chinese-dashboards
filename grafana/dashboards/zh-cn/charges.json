@@ -642,7 +642,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "开始日期"
+              "options": "start_date"
             },
             "properties": [
               {
@@ -745,7 +745,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "时长"
+                "value": "时长(min)"
               },
               {
                 "id": "unit",
@@ -902,7 +902,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "行驶里程 (km)"
+                "value": "增加续航(km)"
               },
               {
                 "id": "decimals",
@@ -999,7 +999,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "平均充电速度"
+                "value": "每小时续航(km/h)"
               },
               {
                 "id": "unit",
@@ -1176,7 +1176,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "结束日期"
+              "options": "end_date"
             },
             "properties": [
               {

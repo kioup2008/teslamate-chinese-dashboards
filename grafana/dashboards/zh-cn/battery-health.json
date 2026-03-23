@@ -230,6 +230,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "(km)"
               }
             ]
           },
@@ -966,7 +970,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "充入电量"
+                "value": "充入电量(kWh)"
               },
               {
                 "id": "unit",
@@ -982,7 +986,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "总用电量"
+                "value": "总用电量(kWh)"
               },
               {
                 "id": "unit",
@@ -1748,7 +1752,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "电池容量"
+                "value": "电量(kWh)"
               },
               {
                 "id": "unit",

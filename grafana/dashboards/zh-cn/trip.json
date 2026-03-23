@@ -619,7 +619,7 @@
               },
               {
                 "id": "displayName",
-                "value": "平均速度（不含快充时间）"
+                "value": "平均速度（不含快充时间）(km/h)"
               }
             ]
           },
@@ -635,7 +635,7 @@
               },
               {
                 "id": "displayName",
-                "value": "平均速度（不含快充时间）"
+                "value": "平均速度（不含快充时间）(km/h)"
               }
             ]
           },
@@ -760,7 +760,7 @@
               },
               {
                 "id": "displayName",
-                "value": "平均速度（包含快充时间）"
+                "value": "平均速度（包含快充时间）(km/h)"
               }
             ]
           },
@@ -1822,7 +1822,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "行驶距离"
+                "value": "距离(km)"
               },
               {
                 "id": "unit",
@@ -1898,7 +1898,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "时长"
+                "value": "时长(min)"
               },
               {
                 "id": "unit",
@@ -1962,7 +1962,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "% 开始"
+              "options": "起始电量%"
             },
             "properties": [
               {
@@ -1990,7 +1990,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "% 结束"
+              "options": "结束电量%"
             },
             "properties": [
               {
@@ -2337,7 +2337,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "充电时长"
+                "value": "时长(min)"
               },
               {
                 "id": "unit",
@@ -2445,7 +2445,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "行驶距离"
+                "value": "增加续航(km)"
               },
               {
                 "id": "unit",
@@ -2828,6 +2828,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "(km)"
               }
             ]
           },

@@ -348,6 +348,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "充电总量(kWh)"
               }
             ]
           },
@@ -360,6 +364,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "用电总量(kWh)"
               }
             ]
           },

@@ -322,6 +322,18 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "energy"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "已用电量(kWh)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "efficiency"
             },
             "properties": [
@@ -447,6 +459,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "距离(km)"
               }
             ]
           },
@@ -743,6 +759,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "速度(km/h)"
               }
             ]
           },
@@ -874,6 +894,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "速度(km/h)"
               }
             ]
           },
@@ -1006,6 +1030,10 @@
               {
                 "id": "unit",
                 "value": "none"
+              },
+              {
+                "id": "displayName",
+                "value": "速度(km/h)"
               }
             ]
           },

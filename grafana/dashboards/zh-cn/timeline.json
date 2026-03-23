@@ -236,7 +236,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "耗电量"
+                "value": "充电量(kWh)"
               },
               {
                 "id": "custom.width",
@@ -249,10 +249,6 @@
               {
                 "id": "decimals",
                 "value": 1
-              },
-              {
-                "id": "displayName",
-                "value": "能耗差异"
               }
             ]
           },
@@ -264,7 +260,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "持续时间"
+                "value": "时长(min)"
               },
               {
                 "id": "unit",

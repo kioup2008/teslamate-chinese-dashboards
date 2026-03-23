@@ -130,7 +130,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "总能耗（净值）："
+                "value": "总能耗（净值）(kWh)："
               }
             ]
           }
@@ -230,7 +230,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "总时长:"
+                "value": "总时长(min):"
               }
             ]
           }
@@ -680,7 +680,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "公里"
+                "value": "距离(km)"
               },
               {
                 "id": "unit",
@@ -704,7 +704,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "电量"
+                "value": "电量(kWh)"
               },
               {
                 "id": "unit",
@@ -854,7 +854,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "时长"
+                "value": "时长(min)"
               },
               {
                 "id": "unit",
@@ -953,7 +953,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "平均速度"
+                "value": "平均速度(km/h)"
               },
               {
                 "id": "unit",
@@ -1110,7 +1110,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "最高速度"
+                "value": "最高速度(km/h)"
               },
               {
                 "id": "unit",
@@ -1165,7 +1165,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "% 开始"
+              "options": "起始电量%"
             },
             "properties": [
               {
@@ -1189,7 +1189,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "% 结束"
+              "options": "结束电量%"
             },
             "properties": [
               {
