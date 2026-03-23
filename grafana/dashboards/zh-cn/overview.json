@@ -1674,12 +1674,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "充电添加能量"
+              "options": "charge_energy_added"
             },
             "properties": [
               {
                 "id": "displayName",
-                "value": "已充电量"
+                "value": "已充电量(kWh)"
               },
               {
                 "id": "unit",
