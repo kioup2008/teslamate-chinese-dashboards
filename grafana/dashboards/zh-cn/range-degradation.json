@@ -250,7 +250,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('week', c.date) AS time,\n  ROUND(MAX(\n    ${preferred_range}_battery_range_km::float / NULLIF(c.usable_battery_level, 0) * 100\n  )::numeric, 0) AS \"满电续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level > 0\n  AND c.${preferred_range}_battery_range_km IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('week', c.date) AS time,\n  ROUND(MAX(\n    ${preferred_range}_battery_range_km::float / NULLIF(c.usable_battery_level, 0) * 100\n  )::numeric, 0) AS \"满电续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level >= 20\n  AND c.${preferred_range}_battery_range_km IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ]
@@ -308,7 +308,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('month', c.date) AS time,\n  ROUND(MAX(\n    ${preferred_range}_battery_range_km::float / NULLIF(c.usable_battery_level, 0) * 100\n  )::numeric, 0) AS \"月最高满电续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level > 0\n  AND c.${preferred_range}_battery_range_km IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('month', c.date) AS time,\n  ROUND(MAX(\n    ${preferred_range}_battery_range_km::float / NULLIF(c.usable_battery_level, 0) * 100\n  )::numeric, 0) AS \"月最高满电续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level >= 20\n  AND c.${preferred_range}_battery_range_km IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ]
@@ -351,7 +351,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  COUNT(*) AS \"充电记录总数\",\n  MAX(c.usable_battery_level) AS \"最高可用电量(%)\",\n  ROUND(('$aux'::json ->> 'MaxRange')::numeric, 0) AS \"历史最高续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level > 0\n  AND c.${preferred_range}_battery_range_km IS NOT NULL;",
+          "rawSql": "SELECT\n  COUNT(*) AS \"充电记录总数\",\n  MAX(c.usable_battery_level) AS \"最高可用电量(%)\",\n  ROUND(('$aux'::json ->> 'MaxRange')::numeric, 0) AS \"历史最高续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level >= 20\n  AND c.${preferred_range}_battery_range_km IS NOT NULL;",
           "refId": "A"
         }
       ]
@@ -409,7 +409,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  MAX(c.date) AS time,\n  ROUND(MAX(\n    ${preferred_range}_battery_range_km::float / NULLIF(c.usable_battery_level, 0) * 100\n  )::numeric, 0) AS \"推算满电续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level > 0\n  AND c.${preferred_range}_battery_range_km IS NOT NULL\nGROUP BY cp.id\nORDER BY 1;",
+          "rawSql": "SELECT\n  MAX(c.date) AS time,\n  ROUND(MAX(\n    ${preferred_range}_battery_range_km::float / NULLIF(c.usable_battery_level, 0) * 100\n  )::numeric, 0) AS \"推算满电续航\"\nFROM charges c\nJOIN charging_processes cp ON cp.id = c.charging_process_id\nWHERE cp.car_id = $car_id\n  AND c.usable_battery_level >= 20\n  AND c.${preferred_range}_battery_range_km IS NOT NULL\nGROUP BY cp.id\nORDER BY 1;",
           "refId": "A"
         }
       ]
