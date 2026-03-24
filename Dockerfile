@@ -4,7 +4,7 @@ FROM teslamate/grafana:latest
 # 标签信息
 LABEL maintainer="wjsall"
 LABEL description="TeslaMate Grafana with Chinese Dashboards"
-LABEL version="1.3.3"
+LABEL version="1.4.0"
 
 # 强制中文语言设置（关键！）
 ENV GF_DEFAULT_LANGUAGE=zh-Hans
