@@ -738,19 +738,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "value"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "充电量(kWh)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "AC"
+              "options": "交流"
             },
             "properties": [
               {
@@ -759,13 +747,17 @@
                   "fixedColor": "semi-dark-green",
                   "mode": "fixed"
                 }
+              },
+              {
+                "id": "displayName",
+                "value": "交流充电(kWh)"
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "DC"
+              "options": "直流"
             },
             "properties": [
               {
@@ -774,18 +766,10 @@
                   "fixedColor": "light-orange",
                   "mode": "fixed"
                 }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "car_id"
-            },
-            "properties": [
+              },
               {
                 "id": "displayName",
-                "value": "车辆ID"
+                "value": "直流充电(kWh)"
               }
             ]
           }
@@ -834,7 +818,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH data AS (\n  SELECT\n\t\tcp.id,\n\t\tcp.charge_energy_added,\n\t\tCASE WHEN NULLIF(mode() within group (order by charger_phases),0) is null THEN '直流'\n\t\t\t\t ELSE '交流'\n\t\tEND AS current\n\tFROM charging_processes cp\n  RIGHT JOIN charges ON cp.id = charges.charging_process_id\n  WHERE\n\t  cp.car_id = $car_id\n\t  AND cp.charge_energy_added > 0.01\n\t  AND $__timeFilter(start_date)\n  GROUP BY 1,2\n)\nSELECT\n\tnow() AS time,\n\tsum(charge_energy_added) AS value,\n\tcurrent AS metric\nFROM data\nGROUP BY 3\nORDER BY metric DESC;",
+          "rawSql": "WITH data AS (\n  SELECT\n    cp.id,\n    cp.charge_energy_added,\n    CASE WHEN NULLIF(mode() within group (order by charger_phases), 0) IS NULL THEN '直流'\n         ELSE '交流'\n    END AS current\n  FROM charging_processes cp\n  RIGHT JOIN charges ON cp.id = charges.charging_process_id\n  WHERE\n    cp.car_id = $car_id\n    AND cp.charge_energy_added > 0.01\n    AND $__timeFilter(cp.start_date)\n  GROUP BY 1, 2\n)\nSELECT\n  SUM(CASE WHEN current = '交流' THEN charge_energy_added ELSE 0 END) AS \"交流\",\n  SUM(CASE WHEN current = '直流' THEN charge_energy_added ELSE 0 END) AS \"直流\"\nFROM data;",
           "refId": "A",
           "select": [
             [
