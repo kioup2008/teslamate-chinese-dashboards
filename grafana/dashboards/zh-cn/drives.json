@@ -1855,7 +1855,7 @@
       },
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "坡度调整",
           "value": "slope-adjusted"
         },
@@ -1876,7 +1876,7 @@
             "value": "by distance"
           }
         ],
-        "query": "slope-adjusted,by distance",
+        "query": "坡度调整 : slope-adjusted,按距离 : by distance",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
