@@ -1325,7 +1325,7 @@
           "hide": false,
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH cp_latest AS (\n  SELECT\n    pos.latitude,\n    pos.longitude,\n    NOW() AS time\n  FROM charging_processes cp\n  JOIN positions pos ON pos.id = cp.position_id\n  WHERE cp.car_id = $car_id\n    AND cp.end_date IS NULL\n  ORDER BY cp.start_date DESC\n  LIMIT 1\n)\nSELECT\n  time,\n  unnest(ARRAY[latitude, latitude]) AS latitude,\n  unnest(ARRAY[longitude, longitude]) AS longitude\nFROM cp_latest",
+          "rawSql": "SELECT\n  NOW() AS time,\n  unnest(ARRAY[pos.latitude, pos.latitude]) AS latitude,\n  unnest(ARRAY[pos.longitude, pos.longitude]) AS longitude\nFROM charging_processes cp\nJOIN positions pos ON pos.id = cp.position_id\nWHERE cp.id = $charging_processes",
           "refId": "A",
           "select": [
             [
