@@ -340,6 +340,101 @@ docker compose restart grafana
 
 ---
 
+## 进阶配置：切换高德地图（国内用户可选）
+
+> 默认使用 OpenStreetMap，国内加载可能较慢。如果你在中国大陆，可以手动切换为高德地图，加载更快、路名更准确。
+
+### 为什么需要坐标纠偏？
+
+高德地图使用 **GCJ-02（火星坐标系）**，而 GPS 和 TeslaMate 记录的是 **WGS-84（地球坐标系）**。两者在中国境内有 100-700 米偏差。不纠偏的话，车辆轨迹点会偏离道路。
+
+### 需要改动的内容
+
+共需修改 **7 个仪表盘** 的两处配置：
+1. **底图 URL** → 改为高德瓦片地址
+2. **SQL 查询** → 加入坐标转换公式
+
+涉及的 7 个仪表盘：`充电统计`、`访问过的地点`、`当前车辆状态`、`当前驾驶状态`、`行程统计(时间段)`、`驾驶记录追踪`、`当前充电状态`
+
+---
+
+### 第一步：修改底图 URL
+
+在 Grafana 中打开每个含地图的面板，点击右上角 **Edit（编辑）**：
+
+1. 找到地图面板
+2. 右侧面板选项中找到 **底图图层 → 图层类型 → XYZ Tile layer**
+3. 将 URL template 替换为：
+
+```
+http://wprd0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}
+```
+
+4. Attribution 填写：`© 高德地图`
+5. 保存面板
+
+> 💡 无需高德 API Key，该地址为高德公共瓦片 CDN，直接可用。
+
+---
+
+### 第二步：SQL 加入坐标纠偏
+
+在同一面板的 **Query（查询）** 中，将原始的 `latitude` / `longitude` 列替换为纠偏后的表达式。
+
+**纠偏后纬度（替换原 `latitude`）：**
+
+```sql
+latitude + (
+  (-100.0 + 2.0*(longitude-105.0) + 3.0*(latitude-35.0)
+   + 0.2*(latitude-35.0)*(latitude-35.0)
+   + 0.1*(longitude-105.0)*(latitude-35.0)
+   + 0.2*sqrt(abs(longitude-105.0))
+   + (20.0*sin(6.0*(longitude-105.0)*PI()) + 20.0*sin(2.0*(longitude-105.0)*PI())) * 2.0/3.0
+   + (20.0*sin((latitude-35.0)*PI()) + 40.0*sin((latitude-35.0)/3.0*PI())) * 2.0/3.0
+   + (160.0*sin((latitude-35.0)/12.0*PI()) + 320.0*sin((latitude-35.0)*PI()/30.0)) * 2.0/3.0
+  ) * 180.0
+) / (
+  (6378137.0 * (1 - 0.00669342162296594323))
+  / (
+      (1 - 0.00669342162296594323*sin(latitude/180.0*PI())*sin(latitude/180.0*PI()))
+      * sqrt(1 - 0.00669342162296594323*sin(latitude/180.0*PI())*sin(latitude/180.0*PI()))
+    )
+  * PI()
+)
+```
+
+**纠偏后经度（替换原 `longitude`）：**
+
+```sql
+longitude + (
+  (300.0 + (longitude-105.0) + 2.0*(latitude-35.0)
+   + 0.1*(longitude-105.0)*(longitude-105.0)
+   + 0.1*(longitude-105.0)*(latitude-35.0)
+   + 0.1*sqrt(abs(longitude-105.0))
+   + (20.0*sin(6.0*(longitude-105.0)*PI()) + 20.0*sin(2.0*(longitude-105.0)*PI())) * 2.0/3.0
+   + (20.0*sin((longitude-105.0)*PI()) + 40.0*sin((longitude-105.0)/3.0*PI())) * 2.0/3.0
+   + (150.0*sin((longitude-105.0)/12.0*PI()) + 300.0*sin((longitude-105.0)*PI()/30.0)) * 2.0/3.0
+  ) * 180.0
+) / (
+  6378137.0
+  / sqrt(1 - 0.00669342162296594323*sin(latitude/180.0*PI())*sin(latitude/180.0*PI()))
+  * cos(latitude/180.0*PI())
+  * PI()
+)
+```
+
+> 📌 算法来源：[eviltransform](https://github.com/googollee/eviltransform)（WGS-84 → GCJ-02 标准实现），精度误差 < 0.5 米。
+
+---
+
+### 注意事项
+
+- 上述修改仅在 **Grafana 界面手动编辑**，不影响底层数据库中的原始坐标
+- 如果你在中国大陆以外使用，**不需要做此改动**，OSM 原版即可
+- 修改后如需恢复 OSM，把底图 URL 改回 `https://tile.openstreetmap.org/{z}/{x}/{y}.png`，SQL 改回原始 `latitude` / `longitude` 即可
+
+---
+
 ## 下一步
 
 安装完成后，建议阅读：
