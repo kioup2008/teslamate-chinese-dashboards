@@ -1134,7 +1134,7 @@
               "showLineNumbers": false,
               "showMiniMap": false
             },
-            "content": "#### DC Charing curves by Carrier\n\nTo analyse data with this dashboard, it's important that you \nhave Geo-Fences added related with the name of the carrier\nyou have recharged your car, or you may want to edit \nperiodically the **name** field of the **addresses** table,\nso that it contains its name. \n\nFor example, if **Teslamate** geolocates the name as \n*\"Esso Purley Way\"* you may modify it to \n*\"Esso Purley Way - IONITY\"* or *\"IONITY Esso Purley Way\"*, \nthen you can filter using\nthe textbox above as **IONITY** to show all the charging curves\nof all charging sessions at that carrier.",
+            "content": "#### 按运营商分组的直流充电曲线\n\n要使用本仪表盘分析数据，需要先在 TeslaMate 中添加包含\n充电运营商名称的**地理围栏**，或者定期编辑数据库中\naddresses 表的 name 字段（即地点名称），在其中加入\n运营商名称。\n\n例如，如果 **TeslaMate** 将地点识别为 *\"朝阳路充电站\"*，\n可以将其修改为 *\"朝阳路充电站 - 特来电\"* 或\n*\"特来电 朝阳路充电站\"*，然后在上方文本框中输入 **特来电**，\n即可筛选该运营商所有充电会话的充电曲线。\n\n常见国内充电运营商：特来电、星星充电、国家电网、小桔充电、\n蔚来超充、特斯拉超充等。\n\n**注**：addresses 和 name 是 PostgreSQL 数据库的表名和字段名，\n操作数据库时必须使用英文原名。",
             "mode": "markdown"
           },
           "pluginVersion": "10.1.2",
