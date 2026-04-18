@@ -465,7 +465,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  date_trunc('month', end_date) AS time,\n  ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 2) AS \"平均掉电%\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  date_trunc('month', timezone('UTC', end_date), '$__timezone') AS time,\n  ROUND(AVG(GREATEST(end_battery_level - next_soc, 0))::numeric, 2) AS \"平均掉电%\"\nFROM sessions\nWHERE next_start IS NOT NULL\n  AND next_start > end_date\n  AND $__timeFilter(end_date)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ]

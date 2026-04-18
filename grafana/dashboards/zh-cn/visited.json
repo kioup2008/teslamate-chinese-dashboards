@@ -255,7 +255,7 @@
         ]
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 5,
         "x": 0,
         "y": 22
@@ -276,7 +276,11 @@
         },
         "showPercentChange": false,
         "textMode": "value_and_name",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "valueSize": 32,
+          "titleSize": 14
+        }
       },
       "pluginVersion": "12.1.1",
       "targets": [
@@ -309,7 +313,7 @@
           }
         }
       ],
-      "title": "行驶统计",
+      "title": "",
       "type": "stat"
     },
     {
@@ -398,7 +402,7 @@
         ]
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 14,
         "x": 5,
         "y": 22
@@ -420,7 +424,11 @@
         },
         "showPercentChange": false,
         "textMode": "value_and_name",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "valueSize": 32,
+          "titleSize": 14
+        }
       },
       "pluginVersion": "12.1.1",
       "targets": [
@@ -453,7 +461,7 @@
           }
         }
       ],
-      "title": "充电统计",
+      "title": "",
       "type": "stat"
     },
     {
@@ -508,7 +516,7 @@
         ]
       },
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 5,
         "x": 19,
         "y": 22
@@ -530,7 +538,11 @@
         },
         "showPercentChange": false,
         "textMode": "value_and_name",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "valueSize": 32,
+          "titleSize": 14
+        }
       },
       "pluginVersion": "12.1.1",
       "targets": [
@@ -563,7 +575,7 @@
           }
         }
       ],
-      "title": "充电费用",
+      "title": "",
       "type": "stat"
     }
   ],

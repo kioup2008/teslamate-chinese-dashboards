@@ -105,7 +105,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "charge_energy_used"
+                "value": "用电量"
               }
             ]
           }
@@ -1484,7 +1484,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "charge_energy_used"
+                "value": "用电量"
               }
             ]
           }
@@ -1515,7 +1515,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "charge_energy_used"
+                "value": "用电量"
               }
             ]
           }

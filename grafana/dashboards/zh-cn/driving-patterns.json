@@ -120,7 +120,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date)), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM start_date) BETWEEN 1 AND 5;",
+          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date)), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 1 AND 5;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -199,7 +199,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date)), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM start_date) IN (0, 6);",
+          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date)), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) IN (0, 6);",
           "refId": "A",
           "sql": {
             "columns": [
@@ -278,7 +278,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((\n    COALESCE(SUM((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency), 0)\n    / NULLIF(SUM(d.distance), 0)\n    * 1000\n  )::numeric, 1) AS wh_per_km\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND EXTRACT(DOW FROM d.start_date) BETWEEN 1 AND 5\n  AND d.distance > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km;",
+          "rawSql": "SELECT\n  ROUND((\n    COALESCE(SUM((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency), 0)\n    / NULLIF(SUM(d.distance), 0)\n    * 1000\n  )::numeric, 1) AS wh_per_km\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND EXTRACT(DOW FROM (d.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 1 AND 5\n  AND d.distance > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -357,7 +357,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((\n    COALESCE(SUM((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency), 0)\n    / NULLIF(SUM(d.distance), 0)\n    * 1000\n  )::numeric, 1) AS wh_per_km\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND EXTRACT(DOW FROM d.start_date) IN (0, 6)\n  AND d.distance > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km;",
+          "rawSql": "SELECT\n  ROUND((\n    COALESCE(SUM((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency), 0)\n    / NULLIF(SUM(d.distance), 0)\n    * 1000\n  )::numeric, 1) AS wh_per_km\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND EXTRACT(DOW FROM (d.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) IN (0, 6)\n  AND d.distance > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -446,7 +446,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  TO_CHAR(start_date, 'HH24') || ':00' AS hour,\n  COUNT(*) AS trip_count\nFROM drives\nWHERE car_id = $car_id AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  TO_CHAR((start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'HH24') || ':00' AS hour,\n  COUNT(*) AS trip_count\nFROM drives\nWHERE car_id = $car_id AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -813,35 +813,27 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "pointSize": {
-              "fixed": 5
-            }
+            "fillOpacity": 80,
+            "axisLabel": "平均能耗 (Wh/km)"
           },
           "unit": "none",
-          "decimals": 1
+          "decimals": 0,
+          "min": 0
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "outside_temp"
+              "options": "行程数"
             },
             "properties": [
               {
-                "id": "custom.axisLabel",
-                "value": "室外温度(°C)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "能耗(Wh/km)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisLabel",
-                "value": "能耗(Wh/km)"
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": true,
+                  "legend": true
+                }
               }
             ]
           }
@@ -854,26 +846,18 @@
         "y": 26
       },
       "id": 8,
-      "description": "横轴：室外温度(°C)；纵轴：每公里能耗(Wh/km)。低温时能耗明显升高，反映冬季电池效率下降。仅统计行程距离 > 5km 的记录。",
+      "description": "按 5°C 区间统计平均每公里能耗，低温区间柱子更高说明冬季能耗上升。仅统计行程 > 5km 且有能耗消耗的记录；鼠标悬停可看每区间的行程数。",
       "options": {
-        "dims": {
-          "x": "outside_temp",
-          "exclude": []
-        },
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
         "legend": {
           "displayMode": "list",
           "placement": "bottom"
         },
-        "series": [
-          {
-            "pointColor": {
-              "fixed": "#5794F2"
-            }
-          }
-        ],
         "tooltip": {
-          "mode": "single"
-        }
+          "mode": "multi"
+        },
+        "xTickLabelRotation": 0
       },
       "pluginVersion": "11.6.1",
       "targets": [
@@ -885,7 +869,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND(d.outside_temp_avg::numeric, 0) AS outside_temp,\n  ROUND(((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency / NULLIF(d.distance, 0) * 1000)::numeric, 1) AS \"能耗(Wh/km)\"\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND d.outside_temp_avg IS NOT NULL\n  AND d.distance > 5\n  AND d.start_ideal_range_km > d.end_ideal_range_km\nORDER BY d.outside_temp_avg;",
+          "rawSql": "SELECT\n  CONCAT((FLOOR(d.outside_temp_avg / 5) * 5)::int, '~', (FLOOR(d.outside_temp_avg / 5) * 5 + 5)::int, '°C') AS \"温度区间\",\n  ROUND(AVG((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency / NULLIF(d.distance, 0) * 1000)::numeric, 0) AS \"平均能耗(Wh/km)\",\n  COUNT(*) AS \"行程数\"\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND d.outside_temp_avg IS NOT NULL\n  AND d.distance > 5\n  AND d.start_ideal_range_km > d.end_ideal_range_km\nGROUP BY FLOOR(d.outside_temp_avg / 5)\nORDER BY FLOOR(d.outside_temp_avg / 5);",
           "refId": "A",
           "sql": {
             "columns": [
@@ -906,8 +890,8 @@
           }
         }
       ],
-      "title": "温度 vs 能耗散点图（越低温 能耗越高）",
-      "type": "xychart"
+      "title": "温度区间平均能耗（低温区间柱子更高）",
+      "type": "barchart"
     }
   ],
   "preload": false,

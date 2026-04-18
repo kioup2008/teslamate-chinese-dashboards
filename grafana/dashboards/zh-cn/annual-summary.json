@@ -120,7 +120,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(COALESCE(SUM(distance), 0)::numeric, 0) AS total_km\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT ROUND(COALESCE(SUM(distance), 0)::numeric, 0) AS total_km\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -199,7 +199,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) AS trip_count\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT COUNT(*) AS trip_count\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -278,7 +278,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(COALESCE(SUM(charge_energy_added), 0)::numeric, 1) AS total_kwh\nFROM charging_processes\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT ROUND(COALESCE(SUM(charge_energy_added), 0)::numeric, 1) AS total_kwh\nFROM charging_processes\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -357,7 +357,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(COALESCE(SUM(cost), 0)::numeric, 2) AS total_cost\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT ROUND(COALESCE(SUM(cost), 0)::numeric, 2) AS total_cost\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -453,7 +453,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(COALESCE(MAX(distance), 0)::numeric, 1) AS max_km\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT ROUND(COALESCE(MAX(distance), 0)::numeric, 1) AS max_km\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -532,7 +532,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(COALESCE(MAX(speed_max), 0)::numeric, 0) AS max_speed\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT ROUND(COALESCE(MAX(speed_max), 0)::numeric, 0) AS max_speed\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -611,7 +611,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((\n    COALESCE(SUM((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency), 0)\n    / NULLIF(SUM(d.distance), 0)\n    * 1000\n  )::numeric, 1) AS avg_wh_km\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND EXTRACT(YEAR FROM d.start_date) = $year::int\n  AND d.distance > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km;",
+          "rawSql": "SELECT\n  ROUND((\n    COALESCE(SUM((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency), 0)\n    / NULLIF(SUM(d.distance), 0)\n    * 1000\n  )::numeric, 1) AS avg_wh_km\nFROM drives d\nJOIN cars c ON c.id = d.car_id\nWHERE d.car_id = $car_id\n  AND EXTRACT(YEAR FROM (d.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int\n  AND d.distance > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -690,7 +690,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) AS charge_count\nFROM charging_processes\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int;",
+          "rawSql": "SELECT COUNT(*) AS charge_count\nFROM charging_processes\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -780,7 +780,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', start_date), 'MM月') AS month,\n  ROUND(COALESCE(SUM(distance), 0)::numeric, 0) AS \"月度里程\"\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM start_date) = $year::int\nGROUP BY date_trunc('month', start_date), TO_CHAR(date_trunc('month', start_date), 'MM月')\nORDER BY date_trunc('month', start_date);",
+          "rawSql": "SELECT\n  TO_CHAR(date_trunc('month', (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')), 'MM月') AS month,\n  ROUND(COALESCE(SUM(distance), 0)::numeric, 0) AS \"月度里程\"\nFROM drives\nWHERE car_id = $car_id\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int\nGROUP BY date_trunc('month', (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'))\nORDER BY date_trunc('month', (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'));",
           "refId": "A",
           "sql": {
             "columns": [
@@ -852,7 +852,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  make_date(2000, EXTRACT(MONTH FROM start_date)::int, 1) AS time,\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN cost END), 0)::numeric, 2) AS \"今年\",\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1 THEN cost END), 0)::numeric, 2) AS \"去年\",\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE) - 2 THEN cost END), 0)::numeric, 2) AS \"前年\"\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM start_date) >= EXTRACT(YEAR FROM CURRENT_DATE) - 2\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "WITH t AS (\n  SELECT (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone') AS local_date, cost\n  FROM charging_processes\n  WHERE car_id = $car_id AND cost IS NOT NULL\n)\nSELECT\n  make_date(2000, EXTRACT(MONTH FROM local_date)::int, 1) AS time,\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM local_date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN cost END), 0)::numeric, 2) AS \"今年\",\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM local_date) = EXTRACT(YEAR FROM CURRENT_DATE) - 1 THEN cost END), 0)::numeric, 2) AS \"去年\",\n  ROUND(COALESCE(SUM(CASE WHEN EXTRACT(YEAR FROM local_date) = EXTRACT(YEAR FROM CURRENT_DATE) - 2 THEN cost END), 0)::numeric, 2) AS \"前年\"\nFROM t\nWHERE EXTRACT(YEAR FROM local_date) >= EXTRACT(YEAR FROM CURRENT_DATE) - 2\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -992,7 +992,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  COALESCE(g.name, a.display_name, CONCAT(d.car_id, ' trip')) AS address,\n  COUNT(*) AS visit_count,\n  ROUND(SUM(d.distance)::numeric, 0) AS total_km\nFROM drives d\nLEFT JOIN addresses a ON d.end_address_id = a.id\nLEFT JOIN geofences g ON d.end_geofence_id = g.id\nWHERE d.car_id = $car_id\n  AND EXTRACT(YEAR FROM d.start_date) = $year::int\n  AND (g.name IS NOT NULL OR a.display_name IS NOT NULL)\nGROUP BY 1\nORDER BY visit_count DESC\nLIMIT 10;",
+          "rawSql": "SELECT\n  COALESCE(g.name, a.display_name, CONCAT(d.car_id, ' trip')) AS address,\n  COUNT(*) AS visit_count,\n  ROUND(SUM(d.distance)::numeric, 0) AS total_km\nFROM drives d\nLEFT JOIN addresses a ON d.end_address_id = a.id\nLEFT JOIN geofences g ON d.end_geofence_id = g.id\nWHERE d.car_id = $car_id\n  AND EXTRACT(YEAR FROM (d.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int\n  AND (g.name IS NOT NULL OR a.display_name IS NOT NULL)\nGROUP BY 1\nORDER BY visit_count DESC\nLIMIT 10;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1132,7 +1132,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  COALESCE(g.name, a.display_name, '未知地点') AS address,\n  COUNT(*) AS charge_count,\n  ROUND(SUM(cp.charge_energy_added)::numeric, 1) AS total_kwh\nFROM charging_processes cp\nLEFT JOIN addresses a ON cp.address_id = a.id\nLEFT JOIN geofences g ON cp.geofence_id = g.id\nWHERE cp.car_id = $car_id\n  AND EXTRACT(YEAR FROM cp.start_date) = $year::int\n  AND (g.name IS NOT NULL OR a.display_name IS NOT NULL)\nGROUP BY 1\nORDER BY charge_count DESC\nLIMIT 10;",
+          "rawSql": "SELECT\n  COALESCE(g.name, a.display_name, '未知地点') AS address,\n  COUNT(*) AS charge_count,\n  ROUND(SUM(cp.charge_energy_added)::numeric, 1) AS total_kwh\nFROM charging_processes cp\nLEFT JOIN addresses a ON cp.address_id = a.id\nLEFT JOIN geofences g ON cp.geofence_id = g.id\nWHERE cp.car_id = $car_id\n  AND EXTRACT(YEAR FROM (cp.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = $year::int\n  AND (g.name IS NOT NULL OR a.display_name IS NOT NULL)\nGROUP BY 1\nORDER BY charge_count DESC\nLIMIT 10;",
           "refId": "A",
           "sql": {
             "columns": [

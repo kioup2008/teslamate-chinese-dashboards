@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "基于行程数据的驾驶习惯评分分析：效率、平稳（事件计数）、速度（超速比例）、能量回收四维度",
+  "description": "驾驶习惯评分：效率（温度+空调补偿）、平稳（加速度 m/s² 判定，去除车型依赖）、速度（严重度加权）、能量回收（按平均车速动态加权）。综合分按场景（城市/混合/高速）自适应权重 + 按里程加权汇总。",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -24,7 +24,7 @@
       "id": 1,
       "type": "gauge",
       "title": "综合评分",
-      "description": "效率(30%) + 平稳(30%) + 速度(20%) + 回收(20%) 加权平均",
+      "description": "按行程场景自适应权重（城市：平稳40+回收30+速度10+效率20；混合：30/20/20/30；高速：20/20/30/30），所有行程按里程加权平均",
       "gridPos": {"h": 8, "w": 4, "x": 0, "y": 0},
       "fieldConfig": {
         "defaults": {
@@ -58,7 +58,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH pos_scores AS (\n  SELECT\n    p.drive_id,\n    LEAST(100, GREATEST(0, 100 - (COUNT(CASE WHEN p.power > 60 THEN 1 END) + COUNT(CASE WHEN p.power < -30 THEN 1 END)) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS regen,\n    LEAST(100, GREATEST(0, 100 - COUNT(CASE WHEN p.speed > 130 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) * 5)) AS spd\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id, d.distance\n),\ndrive_scores AS (\n  SELECT\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - 1.0) * 200)) AS eff,\n    COALESCE(ps.smooth, 100) AS smooth,\n    COALESCE(ps.spd, 100) AS spd,\n    COALESCE(ps.regen, 0) AS regen\n  FROM drives d\n  LEFT JOIN pos_scores ps ON ps.drive_id = d.id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n)\nSELECT ROUND(AVG(eff)*0.30 + AVG(smooth)*0.30 + AVG(spd)*0.20 + AVG(regen)*0.20)::integer AS \"综合评分\"\nFROM drive_scores",
+          "rawSql": "WITH pos_raw AS (\n  SELECT p.drive_id, p.speed, p.power, d.distance, d.start_date,\n    (LEAD(p.speed) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.speed) / NULLIF(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) / 3.6 AS accel_ms2\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n),\npos_scores AS (\n  SELECT drive_id, distance, start_date,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, ABS(accel_ms2) - 2.0) / 0.5) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN power < 0 THEN ABS(power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN power > 0 THEN power ELSE 0 END), 0) * GREATEST(3, AVG(speed) / 20.0)) AS regen,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, speed - 130) / 2.0) * 100.0 / NULLIF(COUNT(*), 0))) AS spd,\n    AVG(speed) AS avg_speed\n  FROM pos_raw\n  GROUP BY drive_id, distance, start_date\n),\ndrive_scores AS (\n  SELECT\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) AS eff,\n    COALESCE(ps.smooth, 100) AS smooth,\n    COALESCE(ps.spd, 100) AS spd,\n    COALESCE(ps.regen, 0) AS regen,\n    COALESCE(ps.avg_speed, 50) AS avg_speed,\n    d.distance\n  FROM drives d\n  LEFT JOIN pos_scores ps ON ps.drive_id = d.id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n)\nSELECT ROUND(SUM((CASE WHEN avg_speed < 50 THEN smooth*0.40 + regen*0.30 + spd*0.10 + eff*0.20 WHEN avg_speed >= 80 THEN smooth*0.20 + regen*0.20 + spd*0.30 + eff*0.30 ELSE smooth*0.30 + regen*0.20 + spd*0.20 + eff*0.30 END) * distance) / NULLIF(SUM(distance), 0))::integer AS \"综合评分\"\nFROM drive_scores",
           "refId": "A",
           "resultFormat": "table"
         }
@@ -68,7 +68,7 @@
       "id": 8,
       "type": "stat",
       "title": "驾驶风格",
-      "description": "基于综合评分的驾驶风格分类",
+      "description": "纯操作风格评分（不含效率）：平稳50% + 速度30% + 回收20%，剥离温度/路况等非操作因素",
       "gridPos": {"h": 8, "w": 4, "x": 4, "y": 0},
       "fieldConfig": {
         "defaults": {
@@ -108,7 +108,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH pos_scores AS (\n  SELECT\n    p.drive_id,\n    LEAST(100, GREATEST(0, 100 - (COUNT(CASE WHEN p.power > 60 THEN 1 END) + COUNT(CASE WHEN p.power < -30 THEN 1 END)) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS regen,\n    LEAST(100, GREATEST(0, 100 - COUNT(CASE WHEN p.speed > 130 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) * 5)) AS spd\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id, d.distance\n),\ndrive_scores AS (\n  SELECT\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - 1.0) * 200)) AS eff,\n    COALESCE(ps.smooth, 100) AS smooth,\n    COALESCE(ps.spd, 100) AS spd,\n    COALESCE(ps.regen, 0) AS regen\n  FROM drives d\n  LEFT JOIN pos_scores ps ON ps.drive_id = d.id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n)\nSELECT ROUND(AVG(eff)*0.30 + AVG(smooth)*0.30 + AVG(spd)*0.20 + AVG(regen)*0.20)::integer AS \"驾驶风格\"\nFROM drive_scores",
+          "rawSql": "WITH pos_raw AS (\n  SELECT p.drive_id, p.speed, p.power, d.distance, d.start_date,\n    (LEAD(p.speed) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.speed) / NULLIF(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) / 3.6 AS accel_ms2\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n),\npos_scores AS (\n  SELECT drive_id, distance, start_date,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, ABS(accel_ms2) - 2.0) / 0.5) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN power < 0 THEN ABS(power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN power > 0 THEN power ELSE 0 END), 0) * GREATEST(3, AVG(speed) / 20.0)) AS regen,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, speed - 130) / 2.0) * 100.0 / NULLIF(COUNT(*), 0))) AS spd,\n    AVG(speed) AS avg_speed\n  FROM pos_raw\n  GROUP BY drive_id, distance, start_date\n)\nSELECT ROUND(SUM((smooth*0.50 + spd*0.30 + regen*0.20) * distance) / NULLIF(SUM(distance), 0))::integer AS \"驾驶风格\"\nFROM pos_scores",
           "refId": "A",
           "resultFormat": "table"
         }
@@ -118,7 +118,7 @@
       "id": 2,
       "type": "stat",
       "title": "效率分",
-      "description": "理想续航消耗 vs 实际里程，权重30%\n100分：实际能耗 ≤ 理想额定\n0分：超出额定能耗100%",
+      "description": "理想续航消耗，带温度+空调补偿：<0°C 1.30 / <10°C 1.15 / 25-30°C 1.10 / >30°C 1.20 / 其他 1.00，按里程加权",
       "gridPos": {"h": 8, "w": 4, "x": 8, "y": 0},
       "fieldConfig": {
         "defaults": {
@@ -151,7 +151,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(LEAST(100, GREATEST(0, 100 - GREATEST(0, (start_ideal_range_km - end_ideal_range_km) / NULLIF(distance, 0) - 1.0) * 200)))::numeric)::integer AS \"效率分\"\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND end_date IS NOT NULL\n  AND distance > 1\n  AND start_ideal_range_km IS NOT NULL\n  AND end_ideal_range_km IS NOT NULL",
+          "rawSql": "SELECT ROUND(SUM(LEAST(100, GREATEST(0, 100 - GREATEST(0, (start_ideal_range_km - end_ideal_range_km) / NULLIF(distance, 0) - CASE WHEN outside_temp_avg < 0 THEN 1.3 WHEN outside_temp_avg < 10 THEN 1.15 WHEN outside_temp_avg > 30 THEN 1.2 WHEN outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) * distance) / NULLIF(SUM(distance), 0))::integer AS \"效率分\"\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND end_date IS NOT NULL\n  AND distance > 3\n  AND start_ideal_range_km IS NOT NULL\n  AND end_ideal_range_km IS NOT NULL",
           "refId": "A",
           "resultFormat": "table"
         }
@@ -161,7 +161,7 @@
       "id": 3,
       "type": "stat",
       "title": "平稳分",
-      "description": "急加速+急刹车时间占比（功率>60kW 或 <-40kW），权重30%\n100分：全程平稳\n0分：≥100%时间急加速/急刹车（极度激进）",
+      "description": "加速度 m/s² 激烈度加权（阈值 ±2 m/s²，超出线性累加），基于速度差直接计算，不再依赖车型功率。所有行程按里程加权。",
       "gridPos": {"h": 8, "w": 4, "x": 12, "y": 0},
       "fieldConfig": {
         "defaults": {
@@ -194,7 +194,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(LEAST(100, GREATEST(0, 100 - combined_pct))))::integer AS \"平稳分\"\nFROM (\n  SELECT\n    (COUNT(CASE WHEN p.power > 60 THEN 1 END) + COUNT(CASE WHEN p.power < -40 THEN 1 END)) * 100.0 / NULLIF(COUNT(*), 0) AS combined_pct\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id\n) t",
+          "rawSql": "WITH pos_raw AS (\n  SELECT p.drive_id, d.distance,\n    (LEAD(p.speed) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.speed) / NULLIF(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) / 3.6 AS accel_ms2\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n),\nper_drive AS (\n  SELECT distance,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, ABS(accel_ms2) - 2.0) / 0.5) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth\n  FROM pos_raw GROUP BY drive_id, distance\n)\nSELECT ROUND(SUM(smooth * distance) / NULLIF(SUM(distance), 0))::integer AS \"平稳分\"\nFROM per_drive",
           "refId": "A",
           "resultFormat": "table"
         }
@@ -204,7 +204,7 @@
       "id": 4,
       "type": "stat",
       "title": "速度分",
-      "description": "超速采样点占比（速度>130km/h），权重20%\n100分：无超速采样点\n0分：20%以上时间超速",
+      "description": "超速严重度加权（>130 km/h 起扣，超速幅度越大扣分越多）。所有行程按里程加权。",
       "gridPos": {"h": 8, "w": 4, "x": 16, "y": 0},
       "fieldConfig": {
         "defaults": {
@@ -237,7 +237,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(LEAST(100, GREATEST(0, 100 - overspeed_pct * 5)))::integer AS \"速度分\"\nFROM (\n  SELECT\n    COUNT(CASE WHEN p.speed > 130 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) AS overspeed_pct\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n) t",
+          "rawSql": "SELECT ROUND(SUM(spd * distance) / NULLIF(SUM(distance), 0))::integer AS \"速度分\"\nFROM (\n  SELECT d.distance,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, p.speed - 130) / 2.0) * 100.0 / NULLIF(COUNT(*), 0))) AS spd\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n  GROUP BY d.id, d.distance\n) t",
           "refId": "A",
           "resultFormat": "table"
         }
@@ -247,7 +247,7 @@
       "id": 5,
       "type": "stat",
       "title": "回收分",
-      "description": "能量回收比（回收能量÷消耗能量），权重20%\n100分：回收比 ≥ 33%（积极单踏板驾驶）\n0分：完全踩刹车，不使用能量回收",
+      "description": "能量回收比 × 动态乘数（GREATEST(3, avg_speed/20)）：城市 ×3，100 km/h ×5，120 km/h ×6。高速刹车少不再被扣分。所有行程按里程加权。",
       "gridPos": {"h": 8, "w": 4, "x": 20, "y": 0},
       "fieldConfig": {
         "defaults": {
@@ -280,7 +280,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT ROUND(AVG(trip_regen))::integer AS \"回收分\"\nFROM (\n  SELECT LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS trip_regen\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id\n) t",
+          "rawSql": "SELECT ROUND(SUM(trip_regen * distance) / NULLIF(SUM(distance), 0))::integer AS \"回收分\"\nFROM (\n  SELECT d.distance,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * GREATEST(3, AVG(p.speed) / 20.0)) AS trip_regen\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n  GROUP BY d.id, d.distance\n) t",
           "refId": "A",
           "resultFormat": "table"
         }
@@ -360,7 +360,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH pos_scores AS (\n  SELECT\n    p.drive_id,\n    LEAST(100, GREATEST(0, 100 - (COUNT(CASE WHEN p.power > 60 THEN 1 END) + COUNT(CASE WHEN p.power < -30 THEN 1 END)) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS regen,\n    LEAST(100, GREATEST(0, 100 - COUNT(CASE WHEN p.speed > 130 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) * 5)) AS spd\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id, d.distance\n),\ndrive_scores AS (\n  SELECT\n    date_trunc('day', timezone('UTC', d.start_date), '$__timezone') AS day,\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - 1.0) * 200)) AS eff,\n    COALESCE(ps.smooth, 100) AS smooth,\n    COALESCE(ps.spd, 100) AS spd,\n    COALESCE(ps.regen, 0) AS regen\n  FROM drives d\n  LEFT JOIN pos_scores ps ON ps.drive_id = d.id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n)\nSELECT\n  day AS time,\n  ROUND(AVG(eff)*0.30 + AVG(smooth)*0.30 + AVG(spd)*0.20 + AVG(regen)*0.20) AS \"综合评分\"\nFROM drive_scores\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "WITH pos_raw AS (\n  SELECT p.drive_id, p.speed, p.power, d.distance, d.start_date,\n    (LEAD(p.speed) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.speed) / NULLIF(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) / 3.6 AS accel_ms2\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n),\npos_scores AS (\n  SELECT drive_id, distance, start_date,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, ABS(accel_ms2) - 2.0) / 0.5) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN power < 0 THEN ABS(power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN power > 0 THEN power ELSE 0 END), 0) * GREATEST(3, AVG(speed) / 20.0)) AS regen,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, speed - 130) / 2.0) * 100.0 / NULLIF(COUNT(*), 0))) AS spd,\n    AVG(speed) AS avg_speed\n  FROM pos_raw\n  GROUP BY drive_id, distance, start_date\n),\ndrive_scores AS (\n  SELECT\n    date_trunc('day', timezone('UTC', d.start_date), '$__timezone') AS day,\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) AS eff,\n    COALESCE(ps.smooth, 100) AS smooth,\n    COALESCE(ps.spd, 100) AS spd,\n    COALESCE(ps.regen, 0) AS regen,\n    COALESCE(ps.avg_speed, 50) AS avg_speed,\n    d.distance\n  FROM drives d\n  LEFT JOIN pos_scores ps ON ps.drive_id = d.id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n)\nSELECT\n  day AS time,\n  ROUND(SUM((CASE WHEN avg_speed < 50 THEN smooth*0.40 + regen*0.30 + spd*0.10 + eff*0.20 WHEN avg_speed >= 80 THEN smooth*0.20 + regen*0.20 + spd*0.30 + eff*0.30 ELSE smooth*0.30 + regen*0.20 + spd*0.20 + eff*0.30 END) * distance) / NULLIF(SUM(distance), 0)) AS \"综合评分\"\nFROM drive_scores\nGROUP BY 1\nORDER BY 1",
           "refId": "A",
           "resultFormat": "time_series"
         },
@@ -369,7 +369,7 @@
           "format": "time_series",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH pos_scores AS (\n  SELECT\n    p.drive_id,\n    d.start_date,\n    LEAST(100, GREATEST(0, 100 - (COUNT(CASE WHEN p.power > 60 THEN 1 END) + COUNT(CASE WHEN p.power < -30 THEN 1 END)) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS regen,\n    LEAST(100, GREATEST(0, 100 - COUNT(CASE WHEN p.speed > 130 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) * 5)) AS spd\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id, d.distance, d.start_date\n)\nSELECT\n  date_trunc('day', timezone('UTC', start_date), '$__timezone') AS time,\n  ROUND(AVG(smooth)) AS \"平稳分\",\n  ROUND(AVG(spd)) AS \"速度分\"\nFROM pos_scores\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "WITH pos_raw AS (\n  SELECT p.drive_id, p.speed, p.power, d.distance, d.start_date,\n    (LEAD(p.speed) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.speed) / NULLIF(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) / 3.6 AS accel_ms2\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n),\npos_scores AS (\n  SELECT drive_id, distance, start_date,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, ABS(accel_ms2) - 2.0) / 0.5) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth,\n    LEAST(100, SUM(CASE WHEN power < 0 THEN ABS(power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN power > 0 THEN power ELSE 0 END), 0) * GREATEST(3, AVG(speed) / 20.0)) AS regen,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, speed - 130) / 2.0) * 100.0 / NULLIF(COUNT(*), 0))) AS spd,\n    AVG(speed) AS avg_speed\n  FROM pos_raw\n  GROUP BY drive_id, distance, start_date\n)\nSELECT\n  date_trunc('day', timezone('UTC', start_date), '$__timezone') AS time,\n  ROUND(SUM(smooth * distance) / NULLIF(SUM(distance), 0)) AS \"平稳分\",\n  ROUND(SUM(spd * distance) / NULLIF(SUM(distance), 0)) AS \"速度分\"\nFROM pos_scores\nGROUP BY 1\nORDER BY 1",
           "refId": "B",
           "resultFormat": "time_series"
         },
@@ -378,7 +378,7 @@
           "format": "time_series",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH drive_regen AS (\n  SELECT\n    d.id AS drive_id,\n    date_trunc('day', timezone('UTC', d.start_date), '$__timezone') AS day,\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - 1.0) * 200)) AS eff_score,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS regen_score\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n  GROUP BY d.id, d.start_date, d.start_ideal_range_km, d.end_ideal_range_km, d.distance\n)\nSELECT\n  day AS time,\n  ROUND(AVG(eff_score)) AS \"效率分\",\n  ROUND(AVG(regen_score)) AS \"回收分\"\nFROM drive_regen\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "WITH drive_regen AS (\n  SELECT\n    d.id AS drive_id,\n    date_trunc('day', timezone('UTC', d.start_date), '$__timezone') AS day,\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) AS eff_score,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * GREATEST(3, AVG(p.speed) / 20.0)) AS regen_score,\n    d.distance AS drive_distance\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n    AND d.start_ideal_range_km IS NOT NULL\n    AND d.end_ideal_range_km IS NOT NULL\n  GROUP BY d.id, d.start_date, d.start_ideal_range_km, d.end_ideal_range_km, d.distance\n)\nSELECT\n  day AS time,\n  ROUND(SUM(eff_score * drive_distance) / NULLIF(SUM(drive_distance), 0)) AS \"效率分\",\n  ROUND(SUM(regen_score * drive_distance) / NULLIF(SUM(drive_distance), 0)) AS \"回收分\"\nFROM drive_regen\nGROUP BY 1\nORDER BY 1",
           "refId": "C",
           "resultFormat": "time_series"
         }
@@ -388,6 +388,7 @@
       "id": 7,
       "type": "table",
       "title": "行程评分明细",
+      "description": "每次行程的逐项分数（同上方 KPI 同一套规则）：效率分=温度补偿后能耗；平稳分=加速度变化；速度分=>130km/h 严重度加权；回收分=回收能量÷消耗能量×动态乘数；综合分按场景权重（市区<50：平稳40+回收30+速度10+效率20；混合 50-80：30/20/20/30；高速≥80：20/20/30/30）。",
       "gridPos": {"h": 10, "w": 16, "x": 0, "y": 16},
       "fieldConfig": {
         "defaults": {
@@ -427,6 +428,20 @@
             "properties": [{"id": "custom.width", "value": 110}]
           },
           {
+            "matcher": {"id": "byName", "options": "平均速度(km/h)"},
+            "properties": [{"id": "custom.width", "value": 120}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "场景"},
+            "properties": [
+              {"id": "custom.width", "value": 70},
+              {"id": "mappings", "value": [
+                {"type": "value", "options": {"城市": {"color": "blue", "index": 0}, "混合": {"color": "purple", "index": 1}, "高速": {"color": "orange", "index": 2}}}
+              ]},
+              {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+            ]
+          },
+          {
             "matcher": {"id": "byRegexp", "options": ".*分$"},
             "properties": [
               {
@@ -459,7 +474,7 @@
           "datasource": {"type": "grafana-postgresql-datasource", "uid": "TeslaMate"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH pos_scores AS (\n  SELECT\n    p.drive_id,\n    (COUNT(CASE WHEN p.power > 60 THEN 1 END) + COUNT(CASE WHEN p.power < -30 THEN 1 END)) * 100.0 / NULLIF(COUNT(*), 0) AS high_power_pct,\n    COUNT(CASE WHEN p.speed > 130 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) AS overspeed_pct,\n    LEAST(100, SUM(CASE WHEN p.power < 0 THEN ABS(p.power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN p.power > 0 THEN p.power ELSE 0 END), 0) * 3) AS regen_score\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 1\n  GROUP BY p.drive_id, d.distance\n)\nSELECT\n  to_char(d.start_date, 'MM-DD HH24:MI') AS \"出发时间\",\n  ROUND(d.distance::numeric, 1) AS \"距离(km)\",\n  d.duration_min AS \"时长(分)\",\n  d.speed_max AS \"最高速(km/h)\",\n  ROUND(LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - 1.0) * 200))::numeric) AS \"效率分\",\n  ROUND(LEAST(100, GREATEST(0, 100 - COALESCE(ps.high_power_pct, 0)))::numeric) AS \"平稳分\",\n  ROUND(LEAST(100, GREATEST(0, 100 - COALESCE(ps.overspeed_pct, 0) * 5))::numeric) AS \"速度分\",\n  ROUND(COALESCE(ps.regen_score, 0)::numeric) AS \"回收分\",\n  ROUND((\n    LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - 1.0) * 200)) * 0.30 +\n    LEAST(100, GREATEST(0, 100 - COALESCE(ps.high_power_pct, 0))) * 0.30 +\n    LEAST(100, GREATEST(0, 100 - COALESCE(ps.overspeed_pct, 0) * 5)) * 0.20 +\n    COALESCE(ps.regen_score, 0) * 0.20\n  )::numeric) AS \"综合评分\"\nFROM drives d\nLEFT JOIN pos_scores ps ON ps.drive_id = d.id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND d.end_date IS NOT NULL\n  AND d.distance > 1\n  AND d.start_ideal_range_km IS NOT NULL\n  AND d.end_ideal_range_km IS NOT NULL\nORDER BY d.start_date DESC\nLIMIT 100",
+          "rawSql": "WITH pos_raw AS (\n  SELECT p.drive_id, p.speed, p.power,\n    (LEAD(p.speed) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.speed) / NULLIF(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) / 3.6 AS accel_ms2\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 3\n),\npos_scores AS (\n  SELECT drive_id,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, ABS(accel_ms2) - 2.0) / 0.5) * 100.0 / NULLIF(COUNT(*), 0))) AS smooth_score,\n    LEAST(100, GREATEST(0, 100 - SUM(GREATEST(0, speed - 130) / 2.0) * 100.0 / NULLIF(COUNT(*), 0))) AS spd_score,\n    LEAST(100, SUM(CASE WHEN power < 0 THEN ABS(power) ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN power > 0 THEN power ELSE 0 END), 0) * GREATEST(3, AVG(speed) / 20.0)) AS regen_score,\n    AVG(speed) AS avg_speed\n  FROM pos_raw\n  GROUP BY drive_id\n)\nSELECT\n  to_char((d.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'MM-DD HH24:MI') AS \"出发时间\",\n  ROUND(d.distance::numeric, 1) AS \"距离(km)\",\n  d.duration_min AS \"时长(分)\",\n  d.speed_max AS \"最高速(km/h)\",\n  ROUND(COALESCE(ps.avg_speed, 0)::numeric, 1) AS \"平均速度(km/h)\",\n  CASE WHEN COALESCE(ps.avg_speed, 50) < 50 THEN '城市' WHEN COALESCE(ps.avg_speed, 50) >= 80 THEN '高速' ELSE '混合' END AS \"场景\",\n  ROUND(LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200))::numeric) AS \"效率分\",\n  ROUND(COALESCE(ps.smooth_score, 100)::numeric) AS \"平稳分\",\n  ROUND(COALESCE(ps.spd_score, 100)::numeric) AS \"速度分\",\n  ROUND(COALESCE(ps.regen_score, 0)::numeric) AS \"回收分\",\n  ROUND((\n    CASE WHEN COALESCE(ps.avg_speed, 50) < 50 THEN\n      COALESCE(ps.smooth_score, 100)*0.40 + COALESCE(ps.regen_score, 0)*0.30 + COALESCE(ps.spd_score, 100)*0.10 + LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) * 0.20\n    WHEN COALESCE(ps.avg_speed, 50) >= 80 THEN\n      COALESCE(ps.smooth_score, 100)*0.20 + COALESCE(ps.regen_score, 0)*0.20 + COALESCE(ps.spd_score, 100)*0.30 + LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) * 0.30\n    ELSE\n      COALESCE(ps.smooth_score, 100)*0.30 + COALESCE(ps.regen_score, 0)*0.20 + COALESCE(ps.spd_score, 100)*0.20 + LEAST(100, GREATEST(0, 100 - GREATEST(0, (d.start_ideal_range_km - d.end_ideal_range_km) / NULLIF(d.distance, 0) - CASE WHEN d.outside_temp_avg < 0 THEN 1.3 WHEN d.outside_temp_avg < 10 THEN 1.15 WHEN d.outside_temp_avg > 30 THEN 1.2 WHEN d.outside_temp_avg > 25 THEN 1.1 ELSE 1.0 END) * 200)) * 0.30\n    END\n  )::numeric) AS \"综合评分\"\nFROM drives d\nLEFT JOIN pos_scores ps ON ps.drive_id = d.id\nWHERE d.car_id = $car_id\n  AND $__timeFilter(d.start_date)\n  AND d.end_date IS NOT NULL\n  AND d.distance > 3\n  AND d.start_ideal_range_km IS NOT NULL\n  AND d.end_ideal_range_km IS NOT NULL\nORDER BY d.start_date DESC\nLIMIT 100",
           "refId": "A",
           "resultFormat": "table"
         }

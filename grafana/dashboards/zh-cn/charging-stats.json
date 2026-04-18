@@ -1043,7 +1043,7 @@
           "axisPlacement": "left",
           "max": "100",
           "reverse": false,
-          "unit": "short"
+          "unit": "percent"
         }
       },
       "pluginVersion": "11.6.1",

@@ -342,7 +342,7 @@
           }
         }
       ],
-      "title": "里程 [$preferred_range]",
+      "title": "续航里程",
       "type": "stat"
     },
     {

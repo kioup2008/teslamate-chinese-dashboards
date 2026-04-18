@@ -931,39 +931,27 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "pointSize": {
-              "fixed": 5
-            }
+            "fillOpacity": 80,
+            "axisLabel": "平均回收率 (%)"
           },
           "unit": "none",
-          "decimals": 1
+          "decimals": 1,
+          "min": 0
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "outside_temp"
+              "options": "行程数"
             },
             "properties": [
               {
-                "id": "custom.axisLabel",
-                "value": "室外温度(°C)"
-              },
-              {
-                "id": "displayName",
-                "value": "室外温度(°C)"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "回收率(%)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisLabel",
-                "value": "回收率(%)"
+                "id": "custom.hideFrom",
+                "value": {
+                  "tooltip": false,
+                  "viz": true,
+                  "legend": true
+                }
               }
             ]
           }
@@ -976,29 +964,21 @@
         "y": 33
       },
       "id": 9,
-      "description": "低温下电池内阻增大，动能回收功率受限，点越靠左回收率越低。",
+      "description": "按 5°C 区间统计平均动能回收率，低温区间柱子更低说明冬季电池内阻增大、回收功率受限。仅统计行程 > 5km 且有回收的记录；鼠标悬停可看每区间的行程数。",
       "options": {
-        "dims": {
-          "x": "outside_temp",
-          "exclude": []
-        },
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
         "legend": {
           "displayMode": "list",
           "placement": "bottom"
         },
-        "series": [
-          {
-            "pointColor": {
-              "fixed": "#5794F2"
-            }
-          }
-        ],
         "tooltip": {
-          "mode": "single"
-        }
+          "mode": "multi"
+        },
+        "xTickLabelRotation": 0
       },
-      "title": "温度 vs 回收率散点图",
-      "type": "xychart",
+      "title": "温度区间平均回收率（低温区间柱子更低）",
+      "type": "barchart",
       "targets": [
         {
           "datasource": {
@@ -1008,7 +988,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH pos_lead AS (\n  SELECT p.drive_id, p.power,\n    COALESCE(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) AS interval_sec\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.outside_temp_avg IS NOT NULL\n    AND d.distance > 5\n),\nregen AS (\n  SELECT drive_id,\n    SUM(CASE WHEN power < 0 THEN ABS(power) * GREATEST(interval_sec, 0) / 3600.0 ELSE 0 END) AS regen_kwh\n  FROM pos_lead GROUP BY drive_id\n)\nSELECT\n  ROUND(d.outside_temp_avg::numeric, 0) AS outside_temp,\n  ROUND((r.regen_kwh / NULLIF(r.regen_kwh + GREATEST(COALESCE((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency, 0), 0), 0) * 100)::numeric, 1) AS \"回收率(%)\"\nFROM regen r\nJOIN drives d ON d.id = r.drive_id\nJOIN cars c ON c.id = d.car_id\nWHERE r.regen_kwh > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km\nORDER BY outside_temp;",
+          "rawSql": "WITH pos_lead AS (\n  SELECT p.drive_id, p.power,\n    COALESCE(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) AS interval_sec\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.outside_temp_avg IS NOT NULL\n    AND d.distance > 5\n),\nregen AS (\n  SELECT drive_id,\n    SUM(CASE WHEN power < 0 THEN ABS(power) * GREATEST(interval_sec, 0) / 3600.0 ELSE 0 END) AS regen_kwh\n  FROM pos_lead GROUP BY drive_id\n),\nper_drive AS (\n  SELECT\n    FLOOR(d.outside_temp_avg / 5) AS bin_idx,\n    (r.regen_kwh / NULLIF(r.regen_kwh + GREATEST(COALESCE((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency, 0), 0), 0) * 100) AS recovery_pct\n  FROM regen r\n  JOIN drives d ON d.id = r.drive_id\n  JOIN cars c ON c.id = d.car_id\n  WHERE r.regen_kwh > 0\n    AND d.start_ideal_range_km > d.end_ideal_range_km\n)\nSELECT\n  CONCAT((bin_idx * 5)::int, '~', (bin_idx * 5 + 5)::int, '°C') AS \"温度区间\",\n  ROUND(AVG(recovery_pct)::numeric, 1) AS \"平均回收率(%)\",\n  COUNT(*) AS \"行程数\"\nFROM per_drive\nWHERE recovery_pct IS NOT NULL\nGROUP BY bin_idx\nORDER BY bin_idx;",
           "refId": "A"
         }
       ]

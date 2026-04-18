@@ -1023,7 +1023,7 @@
           }
         }
       ],
-      "title": "当前额定能效 $preferred_range",
+      "title": "当前额定能效",
       "type": "stat"
     },
     {

@@ -493,7 +493,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('month', start_date) AS time,\n  ROUND((SUM(distance) * $fuel_efficiency / 100.0 * $fuel_price)::numeric, 2) AS \"燃油等价\"\nFROM drives\nWHERE car_id = $car_id AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('month', timezone('UTC', start_date), '$__timezone') AS time,\n  ROUND((SUM(distance) * $fuel_efficiency / 100.0 * $fuel_price)::numeric, 2) AS \"燃油等价\"\nFROM drives\nWHERE car_id = $car_id AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
           "refId": "A"
         },
         {
@@ -504,7 +504,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  date_trunc('month', start_date) AS time,\n  ROUND(COALESCE(SUM(cost), 0)::numeric, 2) AS \"实际充电\"\nFROM charging_processes\nWHERE car_id = $car_id AND cost IS NOT NULL AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "SELECT\n  date_trunc('month', timezone('UTC', start_date), '$__timezone') AS time,\n  ROUND(COALESCE(SUM(cost), 0)::numeric, 2) AS \"实际充电\"\nFROM charging_processes\nWHERE car_id = $car_id AND cost IS NOT NULL AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
           "refId": "B"
         }
       ],
@@ -557,7 +557,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) = 23 OR EXTRACT(HOUR FROM start_date) BETWEEN 0 AND 6 THEN cost ELSE 0 END)::numeric, 2) AS \"深夜谷时(23-07点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) BETWEEN 7 AND 8 THEN cost ELSE 0 END)::numeric, 2) AS \"早高峰(07-09点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) BETWEEN 9 AND 11 THEN cost ELSE 0 END)::numeric, 2) AS \"上午平时(09-12点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) BETWEEN 12 AND 13 THEN cost ELSE 0 END)::numeric, 2) AS \"午间(12-14点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) BETWEEN 14 AND 16 THEN cost ELSE 0 END)::numeric, 2) AS \"下午平时(14-17点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) BETWEEN 17 AND 19 THEN cost ELSE 0 END)::numeric, 2) AS \"晚高峰(17-20点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM start_date) BETWEEN 20 AND 22 THEN cost ELSE 0 END)::numeric, 2) AS \"晚间(20-23点)\"\nFROM charging_processes\nWHERE car_id = $car_id AND cost IS NOT NULL AND $__timeFilter(start_date);",
+          "rawSql": "SELECT\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = 23 OR EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 0 AND 6 THEN cost ELSE 0 END)::numeric, 2) AS \"深夜谷时(23-07点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 7 AND 8 THEN cost ELSE 0 END)::numeric, 2) AS \"早高峰(07-09点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 9 AND 11 THEN cost ELSE 0 END)::numeric, 2) AS \"上午平时(09-12点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 12 AND 13 THEN cost ELSE 0 END)::numeric, 2) AS \"午间(12-14点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 14 AND 16 THEN cost ELSE 0 END)::numeric, 2) AS \"下午平时(14-17点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 17 AND 19 THEN cost ELSE 0 END)::numeric, 2) AS \"晚高峰(17-20点)\",\n  ROUND(SUM(CASE WHEN EXTRACT(HOUR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 20 AND 22 THEN cost ELSE 0 END)::numeric, 2) AS \"晚间(20-23点)\"\nFROM charging_processes\nWHERE car_id = $car_id AND cost IS NOT NULL AND $__timeFilter(start_date);",
           "refId": "A",
           "sql": {
             "columns": [
@@ -638,6 +638,7 @@
         "y": 16
       },
       "id": 7,
+      "description": "基于 charges 表的秒级采样数据，按实际充电小时分桶。若一次充电跨多个小时（如 23:00 开始到次日 06:00），每小时真实增加的 kWh 会正确归到对应桶中，而不是全算到 23:00。",
       "options": {
         "barWidth": 0.7,
         "groupWidth": 0.7,
@@ -660,7 +661,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  TO_CHAR(start_date, 'HH24') || ':00' AS hour,\n  ROUND(COALESCE(SUM(charge_energy_added), 0)::numeric, 2) AS energy_kwh\nFROM charging_processes\nWHERE car_id = $car_id AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "WITH per_sample AS (\n  SELECT\n    c.date,\n    c.charge_energy_added - LAG(c.charge_energy_added) OVER (PARTITION BY c.charging_process_id ORDER BY c.date) AS delta_kwh\n  FROM charges c\n  JOIN charging_processes cp ON cp.id = c.charging_process_id\n  WHERE cp.car_id = $car_id\n    AND $__timeFilter(cp.start_date)\n)\nSELECT\n  LPAD(EXTRACT(HOUR FROM (date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'))::int::text, 2, '0') || ':00' AS hour,\n  ROUND(SUM(GREATEST(delta_kwh, 0))::numeric, 2) AS energy_kwh\nFROM per_sample\nWHERE delta_kwh IS NOT NULL\nGROUP BY 1\nORDER BY 1;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -751,7 +752,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  CASE WHEN $annual_budget::numeric > 0 THEN\n    ROUND((COALESCE(SUM(cost), 0) / $annual_budget::numeric * 100)::numeric, 1)\n  ELSE 0 END AS budget_pct\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM NOW());",
+          "rawSql": "SELECT\n  CASE WHEN $annual_budget::numeric > 0 THEN\n    ROUND((COALESCE(SUM(cost), 0) / $annual_budget::numeric * 100)::numeric, 1)\n  ELSE 0 END AS budget_pct\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND EXTRACT(YEAR FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) = EXTRACT(YEAR FROM timezone('$__timezone', NOW()));",
           "refId": "A",
           "sql": {
             "columns": [
@@ -885,6 +886,7 @@
         "y": 20
       },
       "id": 10,
+      "description": "基于最近 30 天充电费用 × 12 的外推估算，比 YTD 线性外推更稳健（避免年初数据量小时方差过大）。如果近 30 天未充电则显示为 0。",
       "options": {
         "colorMode": "background",
         "graphMode": "none",
@@ -909,7 +911,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  CASE WHEN elapsed_days > 0 THEN\n    ROUND((ytd_cost / elapsed_days * 365)::numeric, 2)\n  ELSE 0 END AS predicted_annual\nFROM (\n  SELECT\n    COALESCE(SUM(cost), 0) AS ytd_cost,\n    EXTRACT(DOY FROM NOW())::numeric AS elapsed_days\n  FROM charging_processes\n  WHERE car_id = $car_id\n    AND cost IS NOT NULL\n    AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM NOW())\n) sub;",
+          "rawSql": "SELECT\n  ROUND((COALESCE(SUM(cost), 0) * 365.0 / 30)::numeric, 2) AS predicted_annual\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND start_date >= NOW() - INTERVAL '30 days';",
           "refId": "A",
           "sql": {
             "columns": [

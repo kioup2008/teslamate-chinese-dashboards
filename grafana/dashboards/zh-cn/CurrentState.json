@@ -434,7 +434,7 @@
           ]
         }
       ],
-      "title": "$preferred_range range/表显里程",
+      "title": "续航/表显里程",
       "type": "stat"
     },
     {
