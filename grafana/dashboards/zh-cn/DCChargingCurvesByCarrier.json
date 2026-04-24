@@ -611,7 +611,7 @@
           ]
         }
       ],
-      "title": "平均充电量",
+      "title": "平均充电量 (kWh)",
       "transformations": [],
       "transparent": true,
       "type": "stat"
@@ -725,7 +725,7 @@
           ]
         }
       ],
-      "title": "平均耗电量",
+      "title": "平均耗电量 (kWh)",
       "transformations": [],
       "transparent": true,
       "type": "stat"

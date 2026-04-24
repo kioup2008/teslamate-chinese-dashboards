@@ -607,7 +607,7 @@
         "y": 16
       },
       "id": 12,
-      "description": "各固件版本下记录到的最大瞬时回收功率(kW)。数值下降说明新版本限制了回收峰值功率。",
+      "description": "各固件版本下记录到的最大瞬时回收功率(kW)。数值下降说明新版本限制了回收峰值功率。数据不受时间范围过滤影响，展示全历史记录。",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -977,7 +977,7 @@
         },
         "xTickLabelRotation": 0
       },
-      "title": "温度区间平均回收率（低温区间柱子更低）",
+      "title": "温度区间平均回收率 (%，低温区间柱子更低)",
       "type": "barchart",
       "targets": [
         {
@@ -1294,7 +1294,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH pos_lead AS (\n  SELECT p.drive_id, p.power,\n    COALESCE(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) AS interval_sec\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 5\n),\nregen AS (\n  SELECT drive_id,\n    SUM(CASE WHEN power < 0 THEN ABS(power) * GREATEST(interval_sec, 0) / 3600.0 ELSE 0 END) AS regen_kwh\n  FROM pos_lead GROUP BY drive_id\n)\nSELECT\n  TO_CHAR(d.start_date AT TIME ZONE '$__timezone', 'YYYY-MM-DD HH24:MI') AS \"出发时间\",\n  ROUND(d.distance::numeric, 1) AS \"里程(km)\",\n  ROUND(r.regen_kwh::numeric, 2) AS \"回收电量(kWh)\",\n  ROUND((r.regen_kwh / NULLIF(r.regen_kwh + GREATEST(COALESCE((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency, 0), 0), 0) * 100)::numeric, 1) AS \"回收率(%)\",\n  ROUND(d.outside_temp_avg::numeric, 1) AS \"均温(°C)\",\n  COALESCE(\n    (SELECT SPLIT_PART(u.version, ' ', 1) FROM updates u\n     WHERE u.car_id = $car_id AND u.start_date <= d.start_date\n     ORDER BY u.start_date DESC LIMIT 1),\n    '未知'\n  ) AS \"固件版本\"\nFROM regen r\nJOIN drives d ON d.id = r.drive_id\nJOIN cars c ON c.id = d.car_id\nWHERE r.regen_kwh > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km\nORDER BY \"回收率(%)\" DESC\nLIMIT 20;",
+          "rawSql": "WITH pos_lead AS (\n  SELECT p.drive_id, p.power,\n    COALESCE(EXTRACT(EPOCH FROM (LEAD(p.date) OVER (PARTITION BY p.drive_id ORDER BY p.date) - p.date)), 0) AS interval_sec\n  FROM positions p\n  JOIN drives d ON d.id = p.drive_id\n  WHERE d.car_id = $car_id\n    AND $__timeFilter(d.start_date)\n    AND d.end_date IS NOT NULL\n    AND d.distance > 5\n),\nregen AS (\n  SELECT drive_id,\n    SUM(CASE WHEN power < 0 THEN ABS(power) * GREATEST(interval_sec, 0) / 3600.0 ELSE 0 END) AS regen_kwh\n  FROM pos_lead GROUP BY drive_id\n)\nSELECT\n  TO_CHAR((d.start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'YYYY-MM-DD HH24:MI') AS \"出发时间\",\n  ROUND(d.distance::numeric, 1) AS \"里程(km)\",\n  ROUND(r.regen_kwh::numeric, 2) AS \"回收电量(kWh)\",\n  ROUND((r.regen_kwh / NULLIF(r.regen_kwh + GREATEST(COALESCE((d.start_ideal_range_km - d.end_ideal_range_km) * c.efficiency, 0), 0), 0) * 100)::numeric, 1) AS \"回收率(%)\",\n  ROUND(d.outside_temp_avg::numeric, 1) AS \"均温(°C)\",\n  COALESCE(\n    (SELECT SPLIT_PART(u.version, ' ', 1) FROM updates u\n     WHERE u.car_id = $car_id AND u.start_date <= d.start_date\n     ORDER BY u.start_date DESC LIMIT 1),\n    '未知'\n  ) AS \"固件版本\"\nFROM regen r\nJOIN drives d ON d.id = r.drive_id\nJOIN cars c ON c.id = d.car_id\nWHERE r.regen_kwh > 0\n  AND d.start_ideal_range_km > d.end_ideal_range_km\nORDER BY \"回收率(%)\" DESC\nLIMIT 20;",
           "refId": "A"
         }
       ]

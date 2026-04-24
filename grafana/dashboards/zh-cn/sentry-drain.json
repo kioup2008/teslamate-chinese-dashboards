@@ -651,7 +651,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 200
       },
-      "title": "停车时长分布（按停车区间）",
+      "title": "停车时长分布 (次，按停车区间)",
       "type": "barchart",
       "targets": [
         {
@@ -869,7 +869,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    d.end_address_id,\n    d.end_geofence_id,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  TO_CHAR(s.end_date AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS \"停车开始\",\n  TO_CHAR(s.next_start AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD HH24:MI') AS \"停车结束\",\n  ROUND(EXTRACT(EPOCH FROM (s.next_start - s.end_date))/3600, 1) AS \"停车时长(小时)\",\n  s.end_battery_level AS \"停车前SOC%\",\n  s.next_soc AS \"停车后SOC%\",\n  GREATEST(s.end_battery_level - s.next_soc, 0) AS \"掉电%\",\n  COALESCE(g.name, a.display_name, '未知地点') AS \"停车地点\"\nFROM sessions s\nLEFT JOIN addresses a ON a.id = s.end_address_id\nLEFT JOIN geofences g ON g.id = s.end_geofence_id\nWHERE s.next_start IS NOT NULL\n  AND s.next_start > s.end_date\n  AND $__timeFilter(s.end_date)\nORDER BY GREATEST(s.end_battery_level - s.next_soc, 0) DESC\nLIMIT 20;",
+          "rawSql": "WITH sessions AS (\n  SELECT\n    d.end_date,\n    d.end_address_id,\n    d.end_geofence_id,\n    p_end.battery_level AS end_battery_level,\n    LEAD(d.start_date) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_start,\n    LEAD(p_start.battery_level) OVER (PARTITION BY d.car_id ORDER BY d.start_date) AS next_soc\n  FROM drives d\n  LEFT JOIN positions p_end ON p_end.id = d.end_position_id\n  LEFT JOIN positions p_start ON p_start.id = d.start_position_id\n  WHERE d.car_id = $car_id AND d.end_date IS NOT NULL\n)\nSELECT\n  TO_CHAR((s.end_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'YYYY-MM-DD HH24:MI') AS \"停车开始\",\n  TO_CHAR((s.next_start AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'YYYY-MM-DD HH24:MI') AS \"停车结束\",\n  ROUND(EXTRACT(EPOCH FROM (s.next_start - s.end_date))/3600, 1) AS \"停车时长(小时)\",\n  s.end_battery_level AS \"停车前SOC%\",\n  s.next_soc AS \"停车后SOC%\",\n  GREATEST(s.end_battery_level - s.next_soc, 0) AS \"掉电%\",\n  COALESCE(g.name, a.display_name, '未知地点') AS \"停车地点\"\nFROM sessions s\nLEFT JOIN addresses a ON a.id = s.end_address_id\nLEFT JOIN geofences g ON g.id = s.end_geofence_id\nWHERE s.next_start IS NOT NULL\n  AND s.next_start > s.end_date\n  AND $__timeFilter(s.end_date)\nORDER BY GREATEST(s.end_battery_level - s.next_soc, 0) DESC\nLIMIT 20;",
           "refId": "A"
         }
       ]

@@ -747,7 +747,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT soc_bucket, SUM(start_count) AS \"充电前SOC\", SUM(end_count) AS \"充电后SOC\"\nFROM (\n  SELECT ((FLOOR(start_battery_level/10)*10)::int)::text || '%' AS soc_bucket, (FLOOR(start_battery_level/10)*10)::int AS sort_key, COUNT(*) AS start_count, 0 AS end_count\n  FROM charging_processes WHERE car_id = $car_id AND $__timeFilter(start_date) GROUP BY 1, 2\n  UNION ALL\n  SELECT ((FLOOR(end_battery_level/10)*10)::int)::text || '%' AS soc_bucket, (FLOOR(end_battery_level/10)*10)::int AS sort_key, 0 AS start_count, COUNT(*) AS end_count\n  FROM charging_processes WHERE car_id = $car_id AND $__timeFilter(start_date) GROUP BY 1, 2\n) sub\nGROUP BY soc_bucket, sort_key\nORDER BY sort_key;",
+          "rawSql": "SELECT soc_bucket, SUM(start_count) AS \"充电前SOC\", SUM(end_count) AS \"充电后SOC\"\nFROM (\n  SELECT ((LEAST(90, FLOOR(start_battery_level/10)*10))::int)::text || '%' AS soc_bucket, (LEAST(90, FLOOR(start_battery_level/10)*10))::int AS sort_key, COUNT(*) AS start_count, 0 AS end_count\n  FROM charging_processes WHERE car_id = $car_id AND $__timeFilter(start_date) GROUP BY 1, 2\n  UNION ALL\n  SELECT ((LEAST(90, FLOOR(end_battery_level/10)*10))::int)::text || '%' AS soc_bucket, (LEAST(90, FLOOR(end_battery_level/10)*10))::int AS sort_key, 0 AS start_count, COUNT(*) AS end_count\n  FROM charging_processes WHERE car_id = $car_id AND $__timeFilter(start_date) GROUP BY 1, 2\n) sub\nGROUP BY soc_bucket, sort_key\nORDER BY sort_key;",
           "refId": "A",
           "sql": {
             "columns": [

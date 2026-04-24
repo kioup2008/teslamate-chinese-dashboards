@@ -70,7 +70,7 @@
           },
           "unit": "none",
           "decimals": 0,
-          "displayName": "当前满电续航"
+          "displayName": "当前满电续航 (km)"
         },
         "overrides": []
       },
@@ -135,7 +135,7 @@
           },
           "unit": "none",
           "decimals": 0,
-          "displayName": "初始满电续航"
+          "displayName": "初始满电续航 (km)"
         },
         "overrides": []
       },
@@ -200,7 +200,7 @@
           },
           "unit": "none",
           "decimals": 0,
-          "displayName": "已退化续航"
+          "displayName": "已退化续航 (km)"
         },
         "overrides": []
       },
@@ -545,7 +545,7 @@
         }
       },
       "description": "每月最高推算满电续航，趋势向下说明电池在退化",
-      "title": "每月最高满电续航",
+      "title": "每月最高满电续航 (km)",
       "type": "timeseries",
       "targets": [
         {

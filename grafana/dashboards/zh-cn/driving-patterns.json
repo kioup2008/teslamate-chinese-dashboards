@@ -120,7 +120,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date)), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 1 AND 5;",
+          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) BETWEEN 1 AND 5;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -199,7 +199,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date)), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) IN (0, 6);",
+          "rawSql": "SELECT\n  ROUND((SUM(distance) / NULLIF(COUNT(DISTINCT DATE(start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')), 0))::numeric, 1) AS avg_km\nFROM drives\nWHERE car_id = $car_id\n  AND $__timeFilter(start_date)\n  AND EXTRACT(DOW FROM (start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')) IN (0, 6);",
           "refId": "A",
           "sql": {
             "columns": [
@@ -446,7 +446,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  TO_CHAR((start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'HH24') || ':00' AS hour,\n  COUNT(*) AS trip_count\nFROM drives\nWHERE car_id = $car_id AND $__timeFilter(start_date)\nGROUP BY 1\nORDER BY 1;",
+          "rawSql": "WITH hours AS (\n  SELECT LPAD(h::text, 2, '0') || ':00' AS hour FROM generate_series(0, 23) h\n),\nactual AS (\n  SELECT\n    TO_CHAR((start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'), 'HH24') || ':00' AS hour,\n    COUNT(*) AS trip_count\n  FROM drives\n  WHERE car_id = $car_id AND $__timeFilter(start_date)\n  GROUP BY 1\n)\nSELECT h.hour, COALESCE(a.trip_count, 0) AS trip_count\nFROM hours h\nLEFT JOIN actual a ON a.hour = h.hour\nORDER BY h.hour;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -890,7 +890,7 @@
           }
         }
       ],
-      "title": "温度区间平均能耗（低温区间柱子更高）",
+      "title": "温度区间平均能耗 (Wh/km，低温区间柱子更高)",
       "type": "barchart"
     }
   ],

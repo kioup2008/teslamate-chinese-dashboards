@@ -911,7 +911,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  ROUND((COALESCE(SUM(cost), 0) * 365.0 / 30)::numeric, 2) AS predicted_annual\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND start_date >= NOW() - INTERVAL '30 days';",
+          "rawSql": "SELECT\n  ROUND((COALESCE(SUM(cost), 0) * 365.0 / 30)::numeric, 2) AS predicted_annual\nFROM charging_processes\nWHERE car_id = $car_id\n  AND cost IS NOT NULL\n  AND (start_date AT TIME ZONE 'UTC') >= NOW() - INTERVAL '30 days';",
           "refId": "A",
           "sql": {
             "columns": [

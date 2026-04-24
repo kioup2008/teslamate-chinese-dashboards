@@ -3097,7 +3097,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "lengthm"
+                "value": "none"
               }
             ]
           },
@@ -3109,7 +3109,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "lengthft"
+                "value": "none"
               }
             ]
           },
@@ -3121,7 +3121,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "海拔"
+                "value": "海拔 ($alternative_length_unit)"
               },
               {
                 "id": "color",
