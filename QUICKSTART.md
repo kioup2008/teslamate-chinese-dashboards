@@ -340,9 +340,39 @@ docker compose restart grafana
 
 ---
 
-## 进阶配置：切换地图源（v1.4.2+ 新增下拉框）
+## 🌏 地图源切换 + 自动 GCJ-02 坐标纠偏（v1.4.2+ 中文版独有）
 
-> 默认使用 OpenStreetMap，国内加载可能较慢。每个含地图的仪表盘顶部都有「**地图源**」下拉框，可一键切换为高德地图（加载更快、路名更准确）或 Carto 浅色风格。
+> **国内 TeslaMate 用户痛点 3 年终结。**
+>
+> 原版只支持 OpenStreetMap，国内加载慢得像挤牙膏；想换高德要手动改 9 个面板的 XYZ URL，git pull 又被覆盖；切完高德车辆轨迹还偏离道路 100~700 米，因为高德是 GCJ-02 坐标系而 TeslaMate 存 WGS-84 —— 想纠偏就得手写一坨复杂三角函数 SQL。
+>
+> 本项目 v1.4.2 把这一切变成两步操作。**海外用户也别走开 —— 谷歌中文路网在中国大陆区域同样是 GCJ-02，本方案一并自动处理。**
+
+### 一步：装一次 PostgreSQL 坐标转换函数
+
+```bash
+docker exec -i teslamate-database-1 psql -U teslamate teslamate \
+  < sql/install-coord-functions.sql
+```
+
+执行后会看到 `坐标转换函数安装成功 (天安门测试通过): (39.91522, 116.40407)` 自检通过提示。一次性安装，后续所有仪表盘自动生效。
+
+> 卸载（如需）：函数文件顶部注释里有 DROP 语句。
+
+### 二步：在仪表盘上切换地图源
+
+含地图的 9 个仪表盘顶部都有「**地图源**」下拉框：
+
+| 选项 | 推荐场景 | 坐标系 | 网络要求 |
+|------|---------|--------|---------|
+| **OpenStreetMap** | 默认/全球通用 | WGS-84 | 国内访问慢（无 CDN） |
+| **高德地图** | 中国大陆首选 | GCJ-02（自动纠偏） | 国内直连 |
+| **高德卫星** | 中国大陆卫星俯瞰 | GCJ-02（自动纠偏） | 国内直连 |
+| **谷歌地图** | 海外华人首选（中文路网） | GCJ-02 中国区域（自动纠偏） | 海外直连/国内需翻墙 |
+| **谷歌卫星** | 海外卫星视图（高清） | WGS-84 | 海外直连/国内需翻墙 |
+| **Carto 浅色** | 极简风格、深色主题底图 | WGS-84 | 全球可达 |
+
+切换地图源后，PostgreSQL 函数会根据新 URL 自动判断是否要做 GCJ-02 转换：选高德/谷歌路网 → 转；选 OSM/Carto/谷歌卫星 → 不转。**车辆轨迹永远贴合道路。**
 
 ### 9 个含地图的仪表盘
 
@@ -358,79 +388,40 @@ docker compose restart grafana
 | 充电详情（内部跳转） | `/d/charge-details` |
 | 行程详情（内部跳转） | `/d/drive-details` |
 
-### 怎么切换
+### 长期固化某个地图源（避免 git pull 重置）
 
-1. 打开任一含地图的仪表盘
-2. 顶部下拉框「**地图源**」选 `高德地图` / `Carto 浅色` / `OpenStreetMap`
-3. 地图瓦片会立即换源
-
-### ⚠️ 关于坐标偏移
-
-高德地图使用 **GCJ-02（火星坐标系）**，TeslaMate 记录的是 **WGS-84（GPS 原始）**。两者在中国境内偏差 **100~700 米**。
-
-切到高德后：
-- ✅ 瓦片本身正确（路名、街道清晰）
-- ❌ 车辆标记会偏离实际道路位置（可见的视觉偏差）
-
-**默认行为：不做坐标纠偏。** 如果你在意精度（比如轨迹必须吻合道路），有两个进阶选项：
-
-### 进阶选项 A：URL 书签固化选择
-
-每次 git pull 仪表盘 JSON 后默认值会回到 OSM。如果你想长期用高德且不被覆盖，把高德 URL 编码后放进书签：
+默认值是 OpenStreetMap。每次 git pull 后下拉框会回到默认值。要长期用某个特定源，把 URL 参数加进浏览器书签：
 
 ```
-http://你的grafana/d/CurrentDriveView?var-map_url=https%3A%2F%2Fwebrd01.is.autonavi.com%2Fappmaptile%3Flang%3Dzh_cn%26size%3D1%26scale%3D1%26style%3D8%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D
+http://你的Grafana/d/CurrentDriveView?var-map_url=https%3A%2F%2Fwprd01.is.autonavi.com%2Fappmaptile%3Flang%3Dzh_cn%26size%3D1%26scale%3D1%26style%3D7%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D
 ```
 
-通过书签打开，下拉框就是高德。
+`var-map_url=` 后面接 URL 编码后的瓦片地址。书签每次打开自动套用。
 
-### 进阶选项 B：SQL 端坐标纠偏（精度最佳）
+### 工作原理（给好奇的同学）
 
-在每个面板的 **Query（查询）** 中，将原始的 `latitude` / `longitude` 列替换为下面的纠偏表达式（基于 [eviltransform](https://github.com/googollee/eviltransform) WGS-84 → GCJ-02 标准实现，误差 < 0.5 米）：
+#### GCJ-02 是啥
 
-**纠偏后纬度（替换原 `latitude`）：**
+中国出于地理信息安全考虑，规定境内地图厂商必须用 **GCJ-02（火星坐标系）**，相对国际标准 WGS-84 在中国境内非线性偏移 100~700 米。所以高德/百度/腾讯/谷歌（中国区域）瓦片都是 GCJ-02；OSM/Carto/谷歌卫星是 WGS-84。
+
+#### 怎么自动判断
+
+`sql/install-coord-functions.sql` 装了 4 个函数：
 
 ```sql
-latitude + (
-  (-100.0 + 2.0*(longitude-105.0) + 3.0*(latitude-35.0)
-   + 0.2*(latitude-35.0)*(latitude-35.0)
-   + 0.1*(longitude-105.0)*(latitude-35.0)
-   + 0.2*sqrt(abs(longitude-105.0))
-   + (20.0*sin(6.0*(longitude-105.0)*PI()) + 20.0*sin(2.0*(longitude-105.0)*PI())) * 2.0/3.0
-   + (20.0*sin((latitude-35.0)*PI()) + 40.0*sin((latitude-35.0)/3.0*PI())) * 2.0/3.0
-   + (160.0*sin((latitude-35.0)/12.0*PI()) + 320.0*sin((latitude-35.0)*PI()/30.0)) * 2.0/3.0
-  ) * 180.0
-) / (
-  (6378137.0 * (1 - 0.00669342162296594323))
-  / (
-      (1 - 0.00669342162296594323*sin(latitude/180.0*PI())*sin(latitude/180.0*PI()))
-      * sqrt(1 - 0.00669342162296594323*sin(latitude/180.0*PI())*sin(latitude/180.0*PI()))
-    )
-  * PI()
-)
+wgs84_to_gcj02_lat(lat, lng) -- 算法实现
+wgs84_to_gcj02_lng(lat, lng)
+lat_for_map(map_url, lat, lng)  -- 包装：URL 含 autonavi 或 google.com 路网 → 转，否则原样返回
+lng_for_map(map_url, lat, lng)
 ```
 
-**纠偏后经度（替换原 `longitude`）：**
+9 个 geomap 面板 SQL 把原本的 `latitude, longitude` 替换成 `lat_for_map('${map_url}', latitude, longitude) AS latitude` 这种调用。Grafana 把当前选中的 URL 注入 SQL，函数按 URL 决定要不要转。
 
-```sql
-longitude + (
-  (300.0 + (longitude-105.0) + 2.0*(latitude-35.0)
-   + 0.1*(longitude-105.0)*(longitude-105.0)
-   + 0.1*(longitude-105.0)*(latitude-35.0)
-   + 0.1*sqrt(abs(longitude-105.0))
-   + (20.0*sin(6.0*(longitude-105.0)*PI()) + 20.0*sin(2.0*(longitude-105.0)*PI())) * 2.0/3.0
-   + (20.0*sin((longitude-105.0)*PI()) + 40.0*sin((longitude-105.0)/3.0*PI())) * 2.0/3.0
-   + (150.0*sin((longitude-105.0)/12.0*PI()) + 300.0*sin((longitude-105.0)*PI()/30.0)) * 2.0/3.0
-  ) * 180.0
-) / (
-  6378137.0
-  / sqrt(1 - 0.00669342162296594323*sin(latitude/180.0*PI())*sin(latitude/180.0*PI()))
-  * cos(latitude/180.0*PI())
-  * PI()
-)
-```
+中国境外坐标自动短路（不转换），海外用户切回 OSM 等 WGS-84 源时无副作用。NULL 输入返回 NULL，数据完整性安全。
 
-> ⚠️ SQL 纠偏的修改在 Grafana 面板里手动做，不影响数据库原始坐标。每次 git pull 会被覆盖（与 Issue #9 一致），建议自己 fork 仓库或维护本地 patch。
+#### 算法精度
+
+基于 [eviltransform](https://github.com/googollee/eviltransform) 标准实现，中国境内误差 < 0.5 米。北京天安门 WGS-84 (39.913818, 116.397828) → GCJ-02 (39.91522, 116.40407)，自检通过即可放心使用。
 
 ---
 

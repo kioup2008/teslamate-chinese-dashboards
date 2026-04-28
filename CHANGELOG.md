@@ -2,27 +2,67 @@
 
 ## [v1.4.2] - 2026-04-28
 
-### 🗺️ 地图源一键切换（解决 Issue #9）
+### 🌏 重磅：地图源一键切换 + 自动 GCJ-02 坐标纠偏（中文版独有）
 
-- **9 个含地图仪表盘** 顶部新增「**地图源**」下拉框，可一键切换 `OpenStreetMap` / `高德地图` / `Carto 浅色`
-  - zh-cn 目录 7 个：CurrentChargeView / CurrentDriveView / CurrentState / TrackingDrives / charging-stats / trip / visited
-  - internal 目录 2 个：charge-details / drive-details（之前 QUICKSTART 漏写）
-- 修复 Issue #9：用户不再需要手动编辑 9 处 JSON 才能切高德地图，下拉框选择即可
-- 内部 2 个面板从 `osm-standard` preset 转为显式 `xyz` 配置，与 zh-cn 7 个统一
-- 新增 `scripts/add-map-source-switcher.py`：批量给仪表盘加 `map_url` custom 变量，方便后续维护
+国内 TeslaMate 用户 3 年来的痛点：原版只支持 OpenStreetMap，国内加载慢；想用高德要手动改每个面板的 XYZ URL，git pull 会被覆盖；切高德后还得手写复杂的 SQL 把 WGS-84 坐标转 GCJ-02 才能让车辆轨迹贴合道路 —— 改完一次至少半小时，下次升级又重来。
+
+**v1.4.2 把这一切变成下拉框两步操作。**
+
+#### 6 个内置地图源
+
+9 个含地图的仪表盘顶部统一新增「地图源」下拉框：
+
+| 选项 | 适用 | 坐标系 | 网络要求 |
+|------|------|--------|---------|
+| **OpenStreetMap** | 默认/全球通用 | WGS-84 | 国内访问慢 |
+| **高德地图** | 中国大陆首选（路网详细，加载快） | GCJ-02 | 国内直连 ✓ |
+| **高德卫星** | 中国大陆卫星俯瞰 | GCJ-02 | 国内直连 ✓ |
+| **谷歌地图** | 海外华人首选（中文路网） | GCJ-02 (国内区域) | 海外直连，国内需翻墙 |
+| **谷歌卫星** | 海外卫星视图（高清） | WGS-84 | 海外直连，国内需翻墙 |
+| **Carto 浅色** | 极简风格 | WGS-84 | 全球可达 |
+
+#### 自动 GCJ-02 坐标纠偏（数据库函数）
+
+新增 4 个 PostgreSQL 函数，按当前选中的地图源 URL 自动判断是否需要做 GCJ-02 转换：
+- `wgs84_to_gcj02_lat()` / `wgs84_to_gcj02_lng()` — eviltransform 标准算法，中国境内误差 < 0.5m
+- `lat_for_map()` / `lng_for_map()` — 包装函数，URL 含 `autonavi` 或 `google.com` 路网模式时自动转 GCJ-02
+
+10 个 geomap 面板的 SQL 全部用包装函数透明替代原 latitude / longitude 引用。用户切换地图源 → 数据自动按对应坐标系返回 → 车辆轨迹永远贴合道路。
+
+中国境外坐标自动短路（不转换），海外用户切回 OSM/Google 卫星等 WGS-84 源时无副作用。
+
+#### 安装坐标转换函数
+
+```bash
+docker exec -i teslamate-database-1 psql -U teslamate teslamate \
+  < sql/install-coord-functions.sql
+```
+
+一次性安装。新版镜像后续会内置自动安装。
+
+### 🛠️ 配套基础设施
+
+- 9 个 geomap 面板的 basemap 配置统一为 xyz + `${map_url}` 变量插值（之前 internal/charge-details 和 internal/drive-details 还在用 `osm-standard` preset，本次一并迁移）
+- basemap 增加 `minZoom: 3 / maxZoom: 18` — 修复放到最大缩放后空白（高德/谷歌免费瓦片只到 z=18，超出会 404）
+- 修正 v1.4.0 起遗留的「QUICKSTART 仪表盘漏写 internal/charge-details 和 drive-details」（之前文档说 7 个仪表盘有地图，实际是 9 个）
 
 ### 📚 文档更新
 
-- **QUICKSTART.md**：进阶配置章节重写，从「手动改 7 个面板的 XYZ URL」改为「下拉框 + URL 书签固化」
-  - 修正含地图仪表盘数量：7 → **9**（之前漏写 internal/charge-details 和 internal/drive-details）
-  - 保留 SQL 端坐标纠偏（GCJ-02 ↔ WGS-84，误差 < 0.5m）作为进阶选项 B
-- **TROUBLESHOOTING.md**：「地图不显示」FAQ 增加 v1.4.2+ 下拉框切换为首选方案，新增「切换高德后标记偏离道路」专项 FAQ
-- **CLAUDE.md**：完善 push 前完整评估流程（4 步 lint + 跨文件一致性 + 上游对比）
+- **QUICKSTART.md** — 进阶配置章节重写：从「手动改 9 个面板 XYZ URL + 写 SQL」简化为「下拉框选 + 装一次 SQL 函数」
+- **TROUBLESHOOTING.md** — 「地图不显示」FAQ 加 v1.4.2 下拉框切换；新增「切换高德/Google 路网后标记偏移」FAQ（解释自动纠偏行为）
+- **CLAUDE.md** — 完善 push 前评估流程
+
+### 🔧 新增脚本
+
+- `scripts/add-map-source-switcher.py` — 批量给仪表盘加 `map_url` 变量
+- `scripts/wrap-coord-with-map-fn.py` — 批量包装 SQL 的 lat/lng 引用
+- `sql/install-coord-functions.sql` — PostgreSQL 坐标转换函数定义
 
 ### ⚠️ 已知行为
 
-- 默认值是 OpenStreetMap，git pull 会重置已选项 → 长期使用高德建议浏览器书签 `?var-map_url=<encoded amap url>`
-- 高德瓦片是 GCJ-02 坐标系，标记会偏移 100~700m（瓦片本身正确），需要精度切 OSM/Carto 或走 SQL 纠偏
+- 默认值是 OpenStreetMap，git pull 会重置已选项 → 长期想用高德建议浏览器书签传 `?var-map_url=<encoded URL>`
+- 高德 / Google 路网瓦片在中国大陆是 GCJ-02，**已自动转换**（无需手动）；OSM / Carto / Google 卫星是 WGS-84，原样
+- 6 个非 geomap 的 table 面板（charges/drives/locations/timeline/trip）保留原始 WGS-84 坐标 —— 用于构造 TeslaMate「新建地理围栏」链接，绝不能转 GCJ-02
 
 ---
 

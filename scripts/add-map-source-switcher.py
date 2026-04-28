@@ -29,7 +29,8 @@ TARGET_FILES = [
 ]
 
 OSM_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-AMAP_URL = "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+AMAP_URL = "https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}"
+AMAP_SAT_URL = "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
 CARTO_URL = "https://cartodb-basemaps-c.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
 
 
@@ -45,9 +46,10 @@ def make_map_url_variable():
         "options": [
             {"selected": True, "text": "OpenStreetMap", "value": OSM_URL},
             {"selected": False, "text": "高德地图", "value": AMAP_URL},
+            {"selected": False, "text": "高德卫星", "value": AMAP_SAT_URL},
             {"selected": False, "text": "Carto 浅色", "value": CARTO_URL},
         ],
-        "query": f"OpenStreetMap : {OSM_URL},高德地图 : {AMAP_URL},Carto 浅色 : {CARTO_URL}",
+        "query": f"OpenStreetMap : {OSM_URL},高德地图 : {AMAP_URL},高德卫星 : {AMAP_SAT_URL},Carto 浅色 : {CARTO_URL}",
         "queryValue": "",
         "skipUrlSync": False,
         "type": "custom",

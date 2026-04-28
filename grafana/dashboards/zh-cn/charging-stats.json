@@ -1632,7 +1632,9 @@
         "basemap": {
           "config": {
             "attribution": "${map_url:text} contributors",
-            "url": "${map_url}"
+            "url": "${map_url}",
+            "minZoom": 3,
+            "maxZoom": 18
           },
           "name": "Layer 0",
           "type": "xyz"
@@ -1718,7 +1720,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH charge_data AS (\nSELECT COALESCE(geofence.name, CONCAT_WS(', ', COALESCE(address.name, nullif(CONCAT_WS(' ', address.road, address.house_number), '')), address.city)) AS loc_nm\n, AVG(position.latitude) AS latitude\n, AVG(position.longitude) AS longitude\n, sum(charge.charge_energy_added) AS chg_total\n, count(*) as charges\nFROM charging_processes charge\nLEFT JOIN addresses address ON charge.address_id = address.id\nLEFT JOIN positions position ON charge.position_id = position.id\nLEFT JOIN geofences geofence ON charge.geofence_id = geofence.id\nWHERE $__timeFilter(charge.end_date)\nAND charge.duration_min >= $min_duration\nAND charge.car_id = $car_id\nGROUP BY COALESCE(geofence.name, CONCAT_WS(', ', COALESCE(address.name, nullif(CONCAT_WS(' ', address.road, address.house_number), '')), address.city))\n) \nSELECT loc_nm\n\t,latitude\n\t,longitude\n\t,chg_total\n\t,chg_total * 1.0 / (SELECT sum(chg_total) FROM charge_data) * 100   AS pct\n\t,charges\nFROM charge_data",
+          "rawSql": "WITH charge_data AS (\nSELECT COALESCE(geofence.name, CONCAT_WS(', ', COALESCE(address.name, nullif(CONCAT_WS(' ', address.road, address.house_number), '')), address.city)) AS loc_nm\n, AVG(position.latitude) AS latitude\n, AVG(position.longitude) AS longitude\n, sum(charge.charge_energy_added) AS chg_total\n, count(*) as charges\nFROM charging_processes charge\nLEFT JOIN addresses address ON charge.address_id = address.id\nLEFT JOIN positions position ON charge.position_id = position.id\nLEFT JOIN geofences geofence ON charge.geofence_id = geofence.id\nWHERE $__timeFilter(charge.end_date)\nAND charge.duration_min >= $min_duration\nAND charge.car_id = $car_id\nGROUP BY COALESCE(geofence.name, CONCAT_WS(', ', COALESCE(address.name, nullif(CONCAT_WS(' ', address.road, address.house_number), '')), address.city))\n) \nSELECT loc_nm\n\t,lat_for_map('${map_url}', latitude, longitude) AS latitude\n\t,lng_for_map('${map_url}', latitude, longitude) AS longitude\n\t,chg_total\n\t,chg_total * 1.0 / (SELECT sum(chg_total) FROM charge_data) * 100   AS pct\n\t,charges\nFROM charge_data",
           "refId": "A",
           "sql": {
             "columns": [
@@ -3016,7 +3018,7 @@
           "text": "OpenStreetMap",
           "value": "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         },
-        "description": "切换地图瓦片源。注：高德为 GCJ-02 坐标系，TeslaMate 存的是 WGS-84，标记会偏移 100~700m（瓦片本身正确）。",
+        "description": "🌏 地图源切换（中文版独有）— 6 种瓦片一键切换。中国大陆推荐：高德地图（路网详细、加载快）或 高德卫星。海外/翻墙：谷歌地图（路网）或 谷歌卫星。默认 OpenStreetMap（全球通用）。选「高德」或「谷歌路网」时自动做 GCJ-02 坐标纠偏，车辆轨迹精准贴合道路。",
         "hide": 0,
         "includeAll": false,
         "label": "地图源",
@@ -3031,7 +3033,22 @@
           {
             "selected": false,
             "text": "高德地图",
-            "value": "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+            "value": "https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}"
+          },
+          {
+            "selected": false,
+            "text": "高德卫星",
+            "value": "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
+          },
+          {
+            "selected": false,
+            "text": "谷歌地图",
+            "value": "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          },
+          {
+            "selected": false,
+            "text": "谷歌卫星",
+            "value": "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
           },
           {
             "selected": false,
@@ -3039,7 +3056,7 @@
             "value": "https://cartodb-basemaps-c.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
           }
         ],
-        "query": "OpenStreetMap : https://tile.openstreetmap.org/{z}/{x}/{y}.png,高德地图 : https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z},Carto 浅色 : https://cartodb-basemaps-c.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+        "query": "OpenStreetMap : https://tile.openstreetmap.org/{z}/{x}/{y}.png,高德地图 : https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z},高德卫星 : https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z},谷歌地图 : https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z},谷歌卫星 : https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z},Carto 浅色 : https://cartodb-basemaps-c.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
