@@ -8,18 +8,36 @@
 
 > ## ⚠️ 升级到 v1.4.2 必读 — 一行命令必跑
 >
-> v1.4.2 新增「地图源切换 + 自动 GCJ-02 坐标纠偏」（中文版独有）功能依赖一个 PostgreSQL 函数。**`git pull` 不会自动装**。如果不装，9 个含地图的仪表盘会显示 `function lat_for_map does not exist` 报错。
+> v1.4.2 新增「地图源切换 + 自动 GCJ-02 坐标纠偏」（中文版独有）功能依赖一个 PostgreSQL 函数。**老版本升级不会自动装**，不装的话 9 个含地图的仪表盘会显示 `function lat_for_map does not exist` 报错。
 >
-> **一键升级（推荐）：**
+> 按你的安装方式选一条：
+>
+> ### 方法 A —— 一键脚本用户（之前用 `simple-deploy.sh` 装的）
+> ```bash
+> wget -qO- https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash
+> ```
+> 脚本会**自动检测**你的现有安装并转升级模式（拉新镜像 + 装新函数 + 重启 Grafana），**不会改你的配置或重置 ENCRYPTION_KEY**。
+>
+> ### 方法 B —— git clone 用户（之前 `git clone` 仓库装的）
 > ```bash
 > bash scripts/upgrade.sh
 > ```
 > 自动: git pull → 检测 PG 容器 → 装函数 → 重启 Grafana。
 >
-> **或手动三步：**
+> ### 方法 C —— 手动派
 > ```bash
-> git pull
+> # 1. 拉最新镜像 / 仓库代码
+> docker compose pull && docker compose up -d   # 一键脚本用户
+> #   或
+> git pull                                       # git clone 用户
+>
+> # 2. 装坐标转换函数
 > docker exec -i teslamate-database-1 psql -U teslamate teslamate < sql/install-coord-functions.sql
+> #   一键脚本用户没有本地 sql/ 文件？用 curl 拉远程：
+> #   curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/install-coord-functions.sql | \
+> #     docker exec -i teslamate-database-1 psql -U teslamate -d teslamate
+>
+> # 3. 重启 Grafana
 > docker compose restart grafana
 > ```
 >

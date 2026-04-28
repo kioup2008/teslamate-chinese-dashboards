@@ -12,6 +12,12 @@ TeslaMate 是一个**开源**的特斯拉数据记录工具。它会自动收集
 ### 本项目是什么？
 TeslaMate 官方的 Grafana 图表是英文的。本项目提供了 **40 个简体中文汉化版图表**（含 9 个原创分析仪表盘），把所有界面翻译成中文，开箱即用。
 
+### 🌟 中文版独有亮点
+
+- 🌏 **地图源一键切换 + 自动 GCJ-02 坐标纠偏（v1.4.2+ 独家）** —— 仪表盘顶部下拉框秒切 OSM / 高德 / 高德卫星 / 谷歌 / 谷歌卫星 / Carto，国内用户车辆轨迹精准贴合道路（不再偏移 100~700m）。**这是 TeslaMate 原版没有的，全中文社区独有。**
+- 🆕 **9 个原创分析仪表盘** —— 年度驾驶报告、省钱分析、充电健康管理、停车掉电分析、出行规律、动能回收、驾驶评分、续航退化、多车对比
+- 🇨🇳 **国内网络优化** —— 默认使用 Docker Hub 镜像（国内加载更稳），可一键切换高德地图（直连国内 CDN），可配置 Tesla 中国区 API 地址
+
 ### 整体架构（你不需要完全理解，但有个概念更好）
 
 ```
@@ -28,43 +34,109 @@ Grafana（图表展示）← 你用浏览器打开这个看数据
 
 ---
 
-## 第二步：检查前置条件
+## 第二步：准备机器和工具
 
-在开始之前，确认以下几项：
+### 你需要怎样一台机器？
 
-### ✅ 必要条件
+TeslaMate 需要 **一台一直开机的机器**（关机就停止记录数据，但已存的数据不会丢）。三种常见选择，挑一个适合你的：
 
-| 条件 | 如何确认 |
-|------|---------|
-| **一台常开的机器** | NAS / 云服务器 / 家用电脑 |
-| **已安装 Docker** | 终端运行 `docker --version`，有输出即可 |
-| **已安装 Docker Compose** | 终端运行 `docker compose version`，有输出即可 |
-| **2GB 以上内存** | 服务器基本都满足 |
+| 场景 | 适合谁 | 上手难度 |
+|------|--------|----------|
+| **A. 家里的 NAS**（群晖/威联通等） | 已有 NAS 的家庭用户 | ⭐⭐⭐ |
+| **B. 云服务器**（阿里云/腾讯云/AWS Lightsail 等，2GB 起） | 想用公网 IP 远程访问的用户 | ⭐⭐ |
+| **C. 你自己的电脑**（Mac / Windows / Linux） | 只想试试看，**电脑要一直开着** | ⭐ |
+
+> 📌 **拿不准？直接选 C** —— 在自己电脑上跑个把月再决定要不要换 NAS / 云服务器。本文剩下的步骤都通用。
+
+### ✅ 配置最低要求
+
+| 条件 | 说明 |
+|------|------|
+| **2GB 以上内存** | 大多数机器都满足 |
 | **10GB 以上磁盘空间** | 用于数据库和镜像 |
-| **网络能访问 Tesla 服务器** | 国内需确认（或配置代理） |
+| **网络能访问 Tesla 服务器** | 国内需配置中国区 API（第四步会讲） |
 
-### 安装 Docker（如果还没安装）
+### 第一关：打开「终端」/ 命令行
 
-**Ubuntu / Debian：**
+后面的所有命令都要在「终端」里运行。不同系统打开方式不一样：
+
+**macOS：**
+- 按 <kbd>⌘</kbd> + <kbd>空格</kbd> 打开聚焦搜索 → 输入 `终端` → 回车
+- 或在「应用程序 → 实用工具」里找「终端」
+
+**Windows：**
+- 按 <kbd>Win</kbd> 键 → 输入 `PowerShell` → 回车
+- 或安装 [Git for Windows](https://git-scm.com/download/win)，用里面的「Git Bash」（更接近 Linux 体验，推荐）
+
+**Linux：**
+- 按 <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd>，或菜单里找「Terminal」
+
+> 终端打开后，是个黑色或白色窗口，光标在闪。后面的命令都是**复制粘贴 → 回车** 就行。
+
+### 第二关：连到你的「服务器」（如果是 NAS / 云服务器）
+
+如果你选了 **场景 A（NAS）** 或 **场景 B（云服务器）**，需要 SSH 远程连进去再操作。**场景 C（自己电脑）跳过这一步。**
+
+```bash
+# 在你的本机终端里跑（替换成你的服务器 IP 和用户名）
+ssh 用户名@服务器IP
+
+# 例：阿里云 Ubuntu 服务器
+ssh root@1.2.3.4
+
+# 例：群晖 NAS
+ssh admin@192.168.1.100
+```
+
+第一次 SSH 会问 `Are you sure you want to continue connecting?` 输入 `yes` 回车；然后输入服务器密码（输入时不会显示，正常）。
+
+> 🆘 不知道服务器 IP？阿里云/腾讯云在控制台「实例详情」找；群晖在「控制面板 → 网络」看 LAN IP。
+
+### 第三关：装 Docker（如果还没装）
+
+在终端（本机或 SSH 连接里）跑：
+
+**Ubuntu / Debian / 大部分云服务器：**
 ```bash
 curl -fsSL https://get.docker.com | bash
 sudo usermod -aG docker $USER
-# 重新登录后生效
+# 退出重新 SSH 登录后生效（场景 A/B），或重启电脑（场景 C）
 ```
 
-**macOS：**
-下载安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+**macOS（场景 C）：**
+下载安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)，装完打开应用，等顶部菜单栏 Docker 图标变绿。
 
-**Windows：**
-通过 WSL2 安装 Docker Desktop（需要 Windows 10 版本 2004+）
+**Windows（场景 C）：**
+通过 WSL2 安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（需要 Windows 10 版本 2004+）。装完启动 WSL2 + Docker Desktop。
+
+**群晖 NAS（场景 A）：**
+在套件中心搜索「Container Manager」（DSM 7.2+）或「Docker」（旧版），安装即可。
+
+### 第四关：验证 Docker 装好了
+
+终端里跑：
+```bash
+docker --version
+docker compose version
+```
+
+两条都有输出（例如 `Docker version 28.5.1` / `Docker Compose version v2.40.1`）就表示装好了。
+
+> ❌ 报 `command not found`？
+> - 装完没重新登录终端 → 关掉终端窗口，再开一个
+> - 装完没启动 Docker Desktop（macOS/Windows）→ 启动它
+> - Linux 上 `docker compose version` 报错而 `docker --version` OK → 你装的是老版 docker-compose-plugin，跑 `docker-compose version`（中间有横线）也行
 
 ---
 
-## 第三步：一键安装（最简单的方式）
+## 第三步：一键安装
 
-### 方法 A：一键脚本（强烈推荐新手）
+> 🎯 **小白直接看「方法 A」就行，方法 B 看不懂跳过没事**。
+> 方法 A 是脚本帮你做完所有配置；方法 B 给已经熟 Docker、想改 ports/volumes/路径的人用。
 
-在你的服务器上运行以下命令：
+### ⭐ 方法 A：一键脚本（强烈推荐）
+
+在终端里运行以下两条命令（复制粘贴 → 回车 → 等 5 分钟）：
 
 ```bash
 wget https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh
@@ -73,23 +145,44 @@ bash simple-deploy.sh
 
 脚本会自动：
 - 创建 `~/teslamate-chinese/` 工作目录
-- 生成 docker-compose.yml 配置文件
-- 生成随机加密密钥
-- 启动所有服务
+- 生成 `docker-compose.yml` 配置文件
+- **生成随机的 ENCRYPTION_KEY**（用来加密 Tesla Token 的密钥）
+- 启动所有服务（TeslaMate / PostgreSQL / Grafana / MQTT，共 4 个容器）
+- **自动安装地图坐标转换函数**（v1.4.2 新功能，不再需要手动操作）
 
-> **🇨🇳 中国大陆用户注意：**
-> 脚本默认使用 Docker Hub 镜像（`bswlhbhmt816/teslamate-chinese-dashboards`），相比 ghcr.io 在国内访问更稳定。
-> 如果拉取镜像仍然很慢或失败，请先配置 Docker 镜像代理：
+### ⚠️ 装完立即做：备份你的 ENCRYPTION_KEY
+
+脚本自动生成的密钥写在 `~/teslamate-chinese/docker-compose.yml` 里。**这个密钥用来加密你的特斯拉 Token，一旦丢了或被改，TeslaMate 就解不开 Token 永远卡死，必须重新授权。**
+
+立刻执行（找出来 → 备份）：
+
+```bash
+grep ENCRYPTION_KEY ~/teslamate-chinese/docker-compose.yml
+```
+
+输出大概长这样：
+```
+- ENCRYPTION_KEY=a3f5b8c9d2e1f4...（一串 64 位十六进制字符）
+```
+
+**把这一整串复制到密码管理器或安全的笔记里。** 万一以后哪天 docker-compose.yml 被不小心动了，还能照着原样恢复。
+
+> **🇨🇳 中国大陆用户镜像加速（如果脚本卡在 "Pulling image..."）：**
+> 脚本默认用 Docker Hub 镜像（`bswlhbhmt816/teslamate-chinese-dashboards`），国内多数能直连。如果还是慢/失败：
 > ```bash
-> # 编辑 Docker 配置（需要 root 权限）
+> # 配置 Docker 镜像代理（需要 root 权限）
 > sudo tee /etc/docker/daemon.json <<EOF
 > {"registry-mirrors": ["https://dockerproxy.cn"]}
 > EOF
 > sudo systemctl daemon-reload && sudo systemctl restart docker
-> # 然后重新运行脚本
+> # 然后回到 ~/teslamate-chinese/，重新跑：docker compose pull && docker compose up -d
 > ```
 
-### 方法 B：手动 Docker Compose（推荐已熟悉 Docker 的用户）
+---
+
+### 方法 B：手动 Docker Compose（已熟 Docker 的可以来看）
+
+> ⚠️ 不建议小白用此方法 —— 方法 A 已经完整够用，方法 B 是给想改 ports / volumes / 自定义路径的人。
 
 **1. 创建工作目录**
 ```bash
@@ -192,7 +285,15 @@ docker compose up -d
 ### 1. 打开 TeslaMate
 在浏览器中访问：`http://服务器IP:4000`
 
-> 本机安装用 `http://localhost:4000`
+#### 「服务器 IP」是什么？怎么查？
+
+| 你装在哪里 | 浏览器输入 | 怎么查 IP |
+|-----------|-----------|-----------|
+| **本机**（场景 C：自己电脑） | `http://localhost:4000` | 不用查，写 `localhost` 就行 |
+| **同一局域网的 NAS / 树莓派**（场景 A） | `http://192.168.x.x:4000` | NAS 控制面板「网络」看 LAN IP；或在 NAS 终端跑 `hostname -I` |
+| **云服务器**（场景 B） | `http://公网IP:4000` | 阿里云/腾讯云控制台「实例详情」找「公网 IP」；或在服务器上跑 `curl ifconfig.me` |
+
+> ⚠️ **云服务器还得在控制台开放 4000 和 3000 端口安全组**，否则浏览器连不上。阿里云：实例 → 安全组 → 配置规则 → 入方向 → 添加 4000 和 3000。
 
 ### 2. 授权 Tesla 账号
 
@@ -205,18 +306,72 @@ TeslaMate 使用 **Tesla 官方 OAuth** 授权，**不需要把密码输入到 T
 4. 如果开启了两步验证，还需要输入验证码
 5. 授权完成后，页面自动跳回 TeslaMate
 
-> **🇨🇳 中国大陆用户注意：**
-> 登录页面会跳转到 Tesla 国际区（`auth.tesla.com`），中国账号可能需要使用 `auth.tesla.cn`。
-> 如果跳转后一直加载失败，请确认 `docker-compose.yml` 中已添加以下两行并重启：
-> ```yaml
-> - TESLA_API_HOST=https://owner-api.vn.cloud.tesla.cn
-> - TESLA_WSS_HOST=wss://streaming.vn.cloud.tesla.cn
+> **🇨🇳 中国大陆用户必看：**
+> 登录页面默认跳转到 Tesla 国际区（`auth.tesla.com`），中国账号必须切到 `auth.tesla.cn` 才能登入。
+>
+> **具体操作（方法 A 一键脚本用户）：**
+>
+> ```bash
+> cd ~/teslamate-chinese
+> nano docker-compose.yml          # 没装 nano 用 vim 也行
 > ```
+>
+> 找到 `teslamate:` 服务下面这两行（已被注释掉）：
+> ```yaml
+>       # - TESLA_API_HOST=https://owner-api.vn.cloud.tesla.cn
+>       # - TESLA_WSS_HOST=wss://streaming.vn.cloud.tesla.cn
+> ```
+>
+> **去掉每行前面的 `#` 和一个空格**，变成：
+> ```yaml
+>       - TESLA_API_HOST=https://owner-api.vn.cloud.tesla.cn
+>       - TESLA_WSS_HOST=wss://streaming.vn.cloud.tesla.cn
+> ```
+>
+> 保存退出（nano: <kbd>Ctrl</kbd>+<kbd>O</kbd> 回车 → <kbd>Ctrl</kbd>+<kbd>X</kbd>），然后重启：
+>
+> ```bash
+> docker compose up -d
+> ```
+>
+> 重新打开 TeslaMate 页面，登录会跳转到 `auth.tesla.cn`，中国账号就能正常登录了。
 
 > **授权失败常见原因：**
 > - 账号密码错误 → 确认在特斯拉 App 能正常登录
 > - 两步验证超时 → 尽快输入验证码，不要等待太久
 > - 网络不通 → 检查服务器能否访问 Tesla 服务器
+
+### 🆘 备用方案：用「Auth for Tesla」第三方 App 拿 Token
+
+如果上面的 `Sign in with Tesla` 按钮**反复登不上**（页面跳转后空白、报 `unauthorized_client`、中国账号怎么试都进不去、两步验证一直超时等），可以用第三方工具 **Auth for Tesla** 在手机上拿到 Token 后再灌进 TeslaMate。这是国内 Tesla 圈的常用救场方法。
+
+**工作原理：** Auth for Tesla 在你手机上完成 OAuth 登录（成功率比 TeslaMate 服务器代登高，因为手机已经是登录状态），把生成的 access / refresh token 给你 → 你把这两段字符串塞进 TeslaMate 即可绕过登录页。
+
+#### 步骤
+
+**1. 下载 Auth for Tesla**
+
+- iOS：[App Store 搜「Auth for Tesla」](https://apps.apple.com/us/app/auth-for-tesla/id1552058613)
+- Android：Google Play / 国内 Tesla 论坛搜安装包
+
+**2. 在 App 里登录你的 Tesla 账号**
+
+输入账号密码，完成两步验证。App 会显示 `access_token` 和 `refresh_token` 两段字符串（很长）。**把这两段都复制保存到密码管理器**。
+
+**3. 在 TeslaMate 登录页选「使用 Token」**
+
+打开 `http://服务器IP:4000`，登录页除了 `Sign in with Tesla` 按钮，还会有一个 `使用现有 Token 登录` / `Use existing tokens` 折叠选项（不同版本位置略有差异，仔细看页面）。展开后两个输入框：
+- `Access Token` ← 粘贴 App 给你的 access_token
+- `Refresh Token` ← 粘贴 App 给你的 refresh_token
+
+点提交，完成绑定。
+
+#### 注意事项
+
+- Auth for Tesla 是开源/经审计的成熟工具，国内 Tesla 群、TeslaFi 用户群都在用，但仍**只在你信任的设备上用**
+- 用 Token 绑定的账号，TeslaMate 会**自动续期**（用 refresh_token 拿新的 access_token），你不用每天手动换
+- 如果 Token 过期或失效（极少发生），重复一遍上述流程即可
+- 详细参考：[TeslaMate 官方文档 - Tokens](https://docs.teslamate.org/docs/configuration/tokens)
 
 ### 3. 完成绑定
 授权成功后，TeslaMate 会自动开始同步车辆数据。
@@ -254,7 +409,27 @@ TeslaMate 使用 **Tesla 官方 OAuth** 授权，**不需要把密码输入到 T
 
 ---
 
-## 第六步：安装后必做的 5 件事
+## 第六步：✅ 装完了？跑这个清单确认
+
+如果以下 6 项都打勾，说明装得没问题：
+
+```bash
+cd ~/teslamate-chinese     # 方法 A 用户；方法 B 改成你的目录
+docker compose ps
+```
+
+- [ ] **4 个容器都在跑** —— 输出里能看到 `teslamate`、`database`、`grafana`、`mosquitto`，状态都是 `Up` 或 `running (healthy)`
+- [ ] **TeslaMate 网页能开** —— 浏览器打开 `http://服务器IP:4000`，看到登录页
+- [ ] **Grafana 网页能开** —— 浏览器打开 `http://服务器IP:3000`，看到登录页
+- [ ] **TeslaMate 已绑定车辆** —— 登录 TeslaMate 后能看到你的车，状态是 `online` / `asleep` / `driving` 等（不是 `unauthenticated`）
+- [ ] **Grafana 有 40 个仪表盘** —— 登录 Grafana 后左侧 `Dashboards` 菜单，能看到「TeslaMate」文件夹下 40 个图
+- [ ] **数据开始同步** —— 跑 `docker compose logs -f teslamate` 能看到类似 `Fetching vehicle data` 的日志（按 <kbd>Ctrl</kbd>+<kbd>C</kbd> 退出查看）
+
+> 任何一项不通过 → 看 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)，或直接到本节末尾的「卸载/重置」部分清空重装。
+
+---
+
+## 第七步：安装后必做的 5 件事
 
 **1. 修改 Grafana 默认密码**
 ```
@@ -350,28 +525,54 @@ docker compose restart grafana
 
 ### 一步：装一次 PostgreSQL 坐标转换函数
 
-#### 新装用户
+#### 🆕 v1.4.2+ 新装用户 —— 跳过本节
 
-跟着「第三步：一键安装」走完后，回到本项目仓库目录，执行：
+如果你刚才用「一键脚本」装的（v1.4.2+ 的脚本），**坐标转换函数已经自动装好了**。直接跳到「二步：在仪表盘上切换地图源」即可。
+
+#### ⬆️ 老版本升级 / 手动验证安装
+
+按你之前的安装方式选一条：
+
+##### A. 一键脚本用户（之前用 simple-deploy.sh 装的）
+
+直接重跑一键脚本，**它会自动检测你的现有安装并转升级模式**（不会改 ENCRYPTION_KEY 也不会丢数据）：
 
 ```bash
-docker exec -i teslamate-database-1 psql -U teslamate teslamate \
-  < sql/install-coord-functions.sql
+wget -qO- https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash
 ```
 
-#### 升级用户
+##### B. git clone 用户（之前 `git clone` 仓库装的）
 
 ```bash
-cd ~/teslamate-chinese     # 你的项目克隆目录
-git pull                   # 拉取 v1.4.2+ 最新代码
-docker exec -i teslamate-database-1 psql -U teslamate teslamate \
-  < sql/install-coord-functions.sql
+cd ~/teslamate-chinese-dashboards     # 你的克隆目录
+bash scripts/upgrade.sh
+```
+
+脚本会做：① git pull 拉新代码 → ② 检测 PG 容器 → ③ 装函数 → ④ 重启 Grafana。
+
+##### C. 手动派（不想用脚本）
+
+```bash
+# 1. 拉最新镜像 / 仓库代码
+docker compose pull && docker compose up -d     # 一键脚本用户
+# 或
+git pull                                         # git clone 用户
+
+# 2. 装坐标转换函数
+# git clone 用户（仓库本地有 sql/ 目录）：
+docker exec -i teslamate-database-1 psql -U teslamate teslamate < sql/install-coord-functions.sql
+
+# 一键脚本用户（没有本地 sql/，用 curl 拉远程）：
+curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/install-coord-functions.sql | \
+  docker exec -i teslamate-database-1 psql -U teslamate -d teslamate
+
+# 3. 重启 Grafana
 docker compose restart grafana
 ```
 
 #### 容器名不一定叫 `teslamate-database-1`
 
-⚠️ 上面命令里写的 `teslamate-database-1` 是默认容器名（用本仓库 simple-deploy.sh 或目录叫 `teslamate-chinese` 的 docker-compose.yml 都会生成这个名字）。如果你改过项目目录名，先确认：
+⚠️ 上面命令里的 `teslamate-database-1` 是默认容器名（v1.4.2+ 一键脚本和目录叫 `teslamate-chinese-dashboards` 的 docker-compose.yml 都会生成这个名字）。如果你改过项目目录名或在更早版本装的，先确认：
 
 ```bash
 docker ps --format '{{.Names}}' | grep -i database
@@ -449,6 +650,55 @@ lng_for_map(map_url, lat, lng)
 #### 算法精度
 
 基于 [eviltransform](https://github.com/googollee/eviltransform) 标准实现，中国境内误差 < 0.5 米。北京天安门 WGS-84 (39.913818, 116.397828) → GCJ-02 (39.91522, 116.40407)，自检通过即可放心使用。
+
+---
+
+## 想推倒重来？卸载 / 重置
+
+### 仅停止服务（保留数据）
+
+```bash
+cd ~/teslamate-chinese
+docker compose down
+```
+
+下次想再开：`docker compose up -d`，数据完整保留。
+
+### 完全卸载（删除所有数据，无法恢复！⚠️）
+
+> **🔴 警告：这会删掉所有行程历史、充电记录、电池数据，且不可逆。先想清楚要不要备份再做。**
+
+**第 1 步：备份（可选但强烈推荐）**
+
+```bash
+cd ~/teslamate-chinese
+docker compose exec database pg_dump -U teslamate teslamate > backup_$(date +%Y%m%d).sql
+# 备份文件保存在当前目录，万一以后想还原就有
+```
+
+**第 2 步：停服务并删容器+数据卷**
+
+```bash
+cd ~/teslamate-chinese
+docker compose down -v        # -v 表示一并删除数据卷（最关键的一步）
+```
+
+**第 3 步：删工作目录**
+
+```bash
+rm -rf ~/teslamate-chinese
+```
+
+**第 4 步：可选 —— 删镜像（释放磁盘）**
+
+```bash
+docker rmi bswlhbhmt816/teslamate-chinese-dashboards
+docker rmi teslamate/teslamate
+docker rmi postgres:18-trixie
+docker rmi eclipse-mosquitto:2
+```
+
+**清空之后，可以从「第三步：一键安装」重头来过。** 你的 `ENCRYPTION_KEY` 可以重新生成（不影响新装），但如果有备份的 `backup_xxx.sql` 想还原就需要用同一个旧 KEY。
 
 ---
 

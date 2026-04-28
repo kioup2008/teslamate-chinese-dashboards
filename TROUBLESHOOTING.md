@@ -227,6 +227,63 @@ docker compose logs grafana | grep -i "error\|failed"
 
 ---
 
+### ❌ TeslaMate「Sign in with Tesla」按钮反复登不上
+
+**症状**：打开 TeslaMate 主页 `http://服务器IP:4000`，点击「Sign in with Tesla」后页面跳转特斯拉登录页，但出现以下任一情况：
+- 跳转后空白页 / 一直加载
+- 报 `unauthorized_client` 或 `invalid_request`
+- 中国账号怎么试都进不去
+- 输完两步验证码仍然报错
+- 跳回 TeslaMate 后状态依然是「未授权」
+
+**逐项排查：**
+
+#### 1. 国内用户：是否配置了 Tesla 中国区 API？
+
+中国账号必须用 `auth.tesla.cn`（不是 `auth.tesla.com`）。检查 `~/teslamate-chinese/docker-compose.yml`：
+```bash
+grep -E "TESLA_API_HOST|TESLA_WSS_HOST" ~/teslamate-chinese/docker-compose.yml
+```
+应该看到：
+```
+- TESLA_API_HOST=https://owner-api.vn.cloud.tesla.cn
+- TESLA_WSS_HOST=wss://streaming.vn.cloud.tesla.cn
+```
+如果前面有 `#` 注释掉，去掉 `#` 后 `docker compose up -d` 重启。详细操作见 [QUICKSTART.md](QUICKSTART.md) 第四步「中国大陆用户必看」。
+
+#### 2. 服务器能否访问 Tesla 服务器？
+
+```bash
+# 国际账号
+curl -I https://auth.tesla.com
+# 中国账号
+curl -I https://auth.tesla.cn
+```
+任一报错（超时、连接拒绝、SSL 握手失败）→ 服务器网络不通 → 配代理或换可用网络。
+
+#### 3. 两步验证码是否超时？
+
+验证码默认有效期约 30 秒。**收到短信/App 推送后立即输入**，别拖到下一分钟才输。
+
+#### 4. 浏览器卡 cookie / 缓存
+
+换无痕模式 / 换浏览器 / 清 `auth.tesla.com` 和 `auth.tesla.cn` 的 cookie 后重试。
+
+#### 5. 🆘 终极方案：用「Auth for Tesla」第三方 App 拿 Token
+
+以上都不行的话，跳过 TeslaMate 的服务器代登流程，**直接在你手机上登录拿 Token**：
+
+1. 手机 App Store 搜「**Auth for Tesla**」（iOS / Android 都有）
+2. 在 App 里登录你的 Tesla 账号（成功率比 TeslaMate 服务器代登高很多，因为手机端原本就常常登着 Tesla App）
+3. App 会显示 `access_token` 和 `refresh_token` 两段长字符串
+4. 回 TeslaMate 登录页，找「**Use existing tokens**」/「使用现有 Token」折叠选项，把两段 token 粘贴进去
+
+详细工作流见 [QUICKSTART.md - 备用方案：Auth for Tesla](QUICKSTART.md) 章节。这是国内 Tesla 圈/TeslaFi 圈的成熟救场方法。
+
+> ⚠️ Auth for Tesla 是社区开源工具，仅在你信任的设备上用。绑定后 TeslaMate 会用 refresh_token 自动续期，不需要每天手动换。
+
+---
+
 ### ❌ 容器启动后无限重启
 
 **症状**：`docker compose ps` 显示 `Restarting`
@@ -504,16 +561,33 @@ location /teslamate/ {
 
 ### 如何升级到新版本
 
+按你之前的安装方式选一条：
+
+#### A. 一键脚本用户（之前用 simple-deploy.sh 装的）
+
+直接重跑一键脚本，**它会自动检测现有安装并转升级模式**：
+
 ```bash
-cd ~/teslamate-chinese  # 进入安装目录
-docker compose pull     # 拉取最新镜像
-docker compose up -d    # 重启使用新镜像
+wget -qO- https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash
 ```
 
-单独升级 Grafana（中文 Dashboard 更新）：
+会做：拉新镜像 → 重启容器 → 装/更新坐标转换函数 → 重启 Grafana。**不会改你的 ENCRYPTION_KEY 或其他配置。**
+
+#### B. git clone 用户
+
 ```bash
-docker compose pull grafana
-docker compose up -d grafana
+cd ~/teslamate-chinese-dashboards     # 你的克隆目录
+bash scripts/upgrade.sh
+```
+
+#### C. 仅更新镜像（旧用法，不含 v1.4.2 坐标函数）
+
+⚠️ **如果你从 v1.4.1 或更早版本升级到 v1.4.2+，单跑这条会让 9 个含地图的仪表盘报错** `function lat_for_map does not exist`。请用上面 A 或 B。
+
+```bash
+cd ~/teslamate-chinese  # 进入安装目录
+docker compose pull
+docker compose up -d
 ```
 
 ---

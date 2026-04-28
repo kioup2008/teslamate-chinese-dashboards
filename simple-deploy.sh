@@ -53,6 +53,63 @@ cd "$INSTALL_DIR"
 echo "📁 工作目录: $INSTALL_DIR"
 echo ""
 
+# ============================================================
+# 已存在检测：如果 docker-compose.yml 已经存在，转升级模式
+# 避免覆盖用户的 ENCRYPTION_KEY、Tesla CN API 配置等
+# ============================================================
+if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
+    echo "🔄 检测到已有安装，进入升级模式（不会改你的配置）..."
+    echo ""
+    echo "  → 拉取最新镜像"
+    docker compose pull
+    echo ""
+    echo "  → 重启服务（应用新镜像）"
+    docker compose up -d
+    echo ""
+    echo "  → 等数据库就绪"
+    DB_CONTAINER=$(docker compose ps -q database 2>/dev/null | head -1)
+    [ -z "$DB_CONTAINER" ] && DB_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'teslamate.*database' | head -1)
+    DB_READY=0
+    for i in $(seq 1 30); do
+        if docker exec "$DB_CONTAINER" psql -U teslamate -d teslamate -c "SELECT 1" >/dev/null 2>&1; then
+            DB_READY=1
+            break
+        fi
+        sleep 2
+    done
+    echo ""
+    if [ "$DB_READY" -eq 1 ]; then
+        echo "  → 安装/更新坐标转换函数"
+        SQL_URL="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/install-coord-functions.sql"
+        if curl -fsSL "$SQL_URL" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate; then
+            echo "  ✓ 函数已更新到最新"
+        else
+            echo "  ⚠ 函数更新失败，地图源切换功能可能受影响"
+        fi
+        echo ""
+        echo "  → 重启 Grafana（让新仪表盘生效）"
+        GRAFANA_CONTAINER=$(docker compose ps -q grafana 2>/dev/null | head -1)
+        [ -z "$GRAFANA_CONTAINER" ] && GRAFANA_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'teslamate.*grafana' | head -1)
+        [ -n "$GRAFANA_CONTAINER" ] && docker restart "$GRAFANA_CONTAINER" >/dev/null
+    else
+        echo "  ⚠ 数据库 60 秒内未就绪，跳过函数更新"
+        echo "    服务起来后手动运行此脚本可重试"
+    fi
+    echo ""
+    echo "============================================="
+    echo "✅ 升级完成"
+    echo "============================================="
+    echo ""
+    echo "下一步: 浏览器 Ctrl+Shift+R 强刷，看「地图源」下拉框是否就绪"
+    echo ""
+    echo "📚 完整发版说明: https://github.com/wjsall/teslamate-chinese-dashboards/releases/latest"
+    exit 0
+fi
+
+# ============================================================
+# 全新安装流程
+# ============================================================
+
 # 生成 docker-compose.yml
 echo "📝 生成配置文件..."
 
