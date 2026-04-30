@@ -18,7 +18,8 @@
 >
 > | 你之前怎么装的？ | 用哪个 |
 > |---|---|
-> | **官方源**（grafana 是 `teslamate/grafana`，从未用过我们的镜像） | 👉 [方法 D：从官方源迁移](#upgrade-method-d) |
+> | **官方源**（grafana 是 `teslamate/grafana`） | [方法 D](#upgrade-method-d) |
+> | 跟 jheredianet 教程装的（手动 import dashboard JSON） | [方法 D](#upgrade-method-d) — 但**先 export 你改过的 dashboard JSON 备份**，迁移会用我们这一套替换 |
 > | 用了我们的 `simple-deploy.sh` | [方法 A](#upgrade-method-a) |
 > | `git clone` 了我们仓库 | [方法 B](#upgrade-method-b) |
 > | 自己写 docker-compose 套了我们镜像 | [方法 C](#upgrade-method-c) |
@@ -42,7 +43,7 @@
 > bash scripts/upgrade.sh
 > ```
 >
-> 自动 6 步：git pull → 检测 PG → 装地图函数 → 装分时电价 → 检查 Grafana 插件 → 重启 Grafana。**幂等可重跑**。
+> 自动 6 步：git pull → 检测 PG → 装地图函数 → 装分时电价 → 检查 Grafana 插件 → 重启 Grafana。**重复跑不会丢数据**。
 >
 > <a id="upgrade-method-c"></a>
 >
@@ -71,7 +72,9 @@
 > bash migrate-from-official.sh
 > ```
 >
-> 脚本自动找你的 `docker-compose.yml` → 备份 → 改 grafana image → 拉新镜像 → 装 SQL。**TeslaMate / Postgres / MQTT 完全不动，ENCRYPTION_KEY 和数据 0 丢失**。万一不满意，把 image 改回去重启 grafana 即可回滚（脚本结尾会打印回滚命令）。
+> 脚本预检 docker daemon + compose CLI（v1/v2 都识别）→ 找 `docker-compose.yml`（含 v2 新 `compose.yml`）→ 备份（mode 600，含 ENCRYPTION_KEY）→ 改 grafana image → 拉新镜像 → 探测 database 容器名 → 装 SQL。**TeslaMate / Postgres / MQTT 完全不动，ENCRYPTION_KEY 和数据 0 丢失**。脚本结尾会打印一行 `cp + $DC up -d` 的回滚命令，复制粘贴即可回去。
+>
+> ⚠️ 在 Grafana 里手动改过 dashboard 的，先到「仪表盘 → ⋮ → Export」备份 JSON，迁移完再 Import 回来 —— 我们的镜像会用我们这一套覆盖。
 >
 > ### 配分时电价（可选，约 3 分钟）
 >
