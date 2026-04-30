@@ -1,5 +1,40 @@
 # 更新日志
 
+## [v1.6.0] - 2026-04-30
+
+### 🆕 新增「🌡️ 天气-能耗关联」仪表盘（中文版独有）
+
+国内特斯拉车主 #1 痛点：「冬天到底掉多少电」。这个仪表盘用 TeslaMate 已记录的**每次行驶外部温度 + 续航损耗**，量化温度对能耗的真实影响。
+
+- **温度桶能耗曲线**：每 2°C 一档，柱高=该桶中位 Wh/km，柱色冷蓝→热红，**16°C 最省 / 38°C 最费**一目了然
+- **4 KPI**：平均温度 / 平均能耗 / 最冷月能耗 / 最热月能耗
+- **月度双轴**：蓝线月均温度 vs 黄柱月均能耗，反相关一眼看到
+- **温度区间柱图**：5 档（≤0/0-10/10-20/20-30/>30°C）平均能耗
+- **季节对比表**：冬春夏秋行程数/里程/温度/能耗/vs 全年均值 % 全部列出
+
+仪表盘由 `scripts/build-weather-efficiency.py` 生成，含 self-check 防止 SQL CTE 漏粘贴。
+
+### 🐛 Bug 修复 — Grafana 12 xychart 渲染失败
+
+3 个 xychart 面板缺少 Grafana 12 必需字段（`pointShape` / `pointStrokeWidth` / `axisBorderShow` / `fillOpacity`），渲染时报 Err：
+
+- `ChargingCurveStats.json` panel 29「超级充电站充电曲线」、panel 32「其他直流充电曲线」
+- `DCChargingCurvesByCarrier.json` panel 32「充电运营商包含: $carrier」
+
+补齐字段后正常渲染。
+
+### 📊 UI 优化
+
+- **5 个 stat 面板**清理死字段 `fixedColor`（`color.mode=thresholds` 下不生效）：`internal/drive-details`、`CurrentChargeView`、`CurrentDriveView`、`CurrentState`、`TrackingDrives`
+- **`station-ranking`** 删除自循环 `displayName: "${__field.name}"`
+- **文档计数同步**：26 处「40 个/42 个」→「43 个」、「9 个原创」→「12 个原创」（README/QUICKSTART/DASHBOARD_MAP/SCENE_GUIDE/CLAUDE）
+
+### 🔧 内部
+
+- `scripts/build-weather-efficiency.py`：抽常量（`WH_PER_KM_*` `MIN_*` `TEMP_COLOR_STEPS`）、`MONTHLY_CTE` 复用、`if __name__ == "__main__"` guard、self-check assert 每个 panel 都包含 `WITH d AS (`
+- 季节对比 SQL 优化：`EXTRACT(MONTH ...)` 算一次（`month_local`）替代 8 次重复，大表上省 200-400ms
+- `scatter_panel` helper 加 `y_field` 参数，消除 panel 间共享假列名的 hack
+
 ## [v1.5.0] - 2026-04-30
 
 ### ⚡ 重磅：分时电价系统 + 充电桩性价比榜（中文版独有）
