@@ -9,8 +9,9 @@
 #   2. 自动检测运行中的 PostgreSQL 容器名
 #   3. 安装/更新坐标转换函数（lat_for_map / lng_for_map / wgs84_to_gcj02_*）
 #   4. 安装/更新分时电价系统（tou_rates 表 + 7 个函数 + 触发器 + 视图）
-#   5. 检查 Grafana 必装插件（volkovlabs-form-panel）
-#   6. 重启 Grafana 容器，触发仪表盘重载
+#   5. 安装/更新性能优化索引（v1.6.1+，positions 表 car_id+date btree）
+#   6. 检查 Grafana 必装插件（volkovlabs-form-panel）
+#   7. 重启 Grafana 容器，触发仪表盘重载
 #
 # 适用场景:
 #   - 从任一旧版本升级到最新（v1.4.x → v1.5.x）
@@ -40,7 +41,7 @@ fi
 # ============================================================
 # 1. git pull
 # ============================================================
-echo -e "${BLUE}[1/4] 拉取最新代码...${NC}"
+echo -e "${BLUE}[1/7] 拉取最新代码...${NC}"
 if ! git diff-index --quiet HEAD -- 2>/dev/null; then
     echo -e "${RED}✗ 本地有未提交的修改，无法 git pull${NC}"
     echo ""
@@ -57,7 +58,7 @@ git pull --rebase
 # ============================================================
 # 2. 检测 PostgreSQL 容器名
 # ============================================================
-echo -e "${BLUE}[2/6] 检测 PostgreSQL 容器...${NC}"
+echo -e "${BLUE}[2/7] 检测 PostgreSQL 容器...${NC}"
 DB_CONTAINER=$(detect_db_container)
 
 if [ -z "$DB_CONTAINER" ]; then
@@ -76,7 +77,7 @@ echo -e "${GREEN}  ✓ 找到容器: ${DB_CONTAINER}${NC}"
 # ============================================================
 # 3. 安装坐标转换函数（地图源切换 + GCJ-02 转换）
 # ============================================================
-echo -e "${BLUE}[3/6] 安装坐标转换函数（地图）...${NC}"
+echo -e "${BLUE}[3/7] 安装坐标转换函数（地图）...${NC}"
 if ! docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate \
         < sql/install-coord-functions.sql > /dev/null; then
     echo -e "${RED}✗ 坐标函数安装失败${NC}"
@@ -88,7 +89,7 @@ echo -e "${GREEN}  ✓ 地图坐标函数已就绪${NC}"
 # ============================================================
 # 4. 安装分时电价系统
 # ============================================================
-echo -e "${BLUE}[4/6] 安装分时电价系统...${NC}"
+echo -e "${BLUE}[4/7] 安装分时电价系统...${NC}"
 TOU_INSTALLED=0
 if [ ! -f "sql/install-tou.sql" ]; then
     echo -e "${YELLOW}  ⚠ 找不到 sql/install-tou.sql，跳过分时电价安装（地图功能仍可用）${NC}"
@@ -110,9 +111,24 @@ else
 fi
 
 # ============================================================
-# 5. 检查 Grafana 必装插件
+# 5. 安装性能优化索引（v1.6.1+）
 # ============================================================
-echo -e "${BLUE}[5/6] 检查 Grafana 插件...${NC}"
+echo -e "${BLUE}[5/7] 安装性能优化索引...${NC}"
+if [ ! -f "sql/install-indexes.sql" ]; then
+    echo -e "${YELLOW}  ⚠ 找不到 sql/install-indexes.sql，跳过（不影响功能，仅性能略差）${NC}"
+else
+    if docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate \
+            < sql/install-indexes.sql > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ 性能索引已就绪（电池健康/天气-能耗等查询提速）${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ 索引安装失败（不影响功能，仅查询略慢）${NC}"
+    fi
+fi
+
+# ============================================================
+# 6. 检查 Grafana 必装插件
+# ============================================================
+echo -e "${BLUE}[6/7] 检查 Grafana 插件...${NC}"
 GRAFANA_CONTAINER=$(detect_grafana_container)
 if [ -n "$GRAFANA_CONTAINER" ]; then
     if docker exec "$GRAFANA_CONTAINER" ls /var/lib/grafana/plugins/volkovlabs-form-panel >/dev/null 2>&1; then
@@ -133,10 +149,10 @@ if [ -n "$GRAFANA_CONTAINER" ]; then
 fi
 
 # ============================================================
-# 6. 重启 Grafana
+# 7. 重启 Grafana
 # ============================================================
-echo -e "${BLUE}[6/6] 重启 Grafana...${NC}"
-# GRAFANA_CONTAINER 已在步骤 5 检测过，直接复用
+echo -e "${BLUE}[7/7] 重启 Grafana...${NC}"
+# GRAFANA_CONTAINER 已在步骤 6 检测过，直接复用
 if [ -n "$GRAFANA_CONTAINER" ]; then
     docker restart "$GRAFANA_CONTAINER" > /dev/null
     echo -e "${GREEN}  ✓ 已重启 ${GRAFANA_CONTAINER}${NC}"

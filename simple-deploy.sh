@@ -79,12 +79,27 @@ if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
     done
     echo ""
     if [ "$DB_READY" -eq 1 ]; then
+        SQL_BASE="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql"
+
         echo "  → 安装/更新坐标转换函数"
-        SQL_URL="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/install-coord-functions.sql"
-        if curl -fsSL "$SQL_URL" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate; then
-            echo "  ✓ 函数已更新到最新"
+        if curl -fsSL "$SQL_BASE/install-coord-functions.sql" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
+            echo "  ✓ 坐标函数已更新（地图源切换/纠偏）"
         else
-            echo "  ⚠ 函数更新失败，地图源切换功能可能受影响"
+            echo "  ⚠ 坐标函数更新失败"
+        fi
+
+        echo "  → 安装/更新分时电价表 + 函数（v1.5.0+）"
+        if curl -fsSL "$SQL_BASE/install-tou.sql" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
+            echo "  ✓ 分时电价已就绪（首次装好后到「⚡ 分时电价配置」仪表盘填规则）"
+        else
+            echo "  ⚠ 分时电价更新失败，TOU 仪表盘可能不可用"
+        fi
+
+        echo "  → 安装/更新性能优化索引（v1.6.1+）"
+        if curl -fsSL "$SQL_BASE/install-indexes.sql" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
+            echo "  ✓ 索引已就绪（电池健康/天气-能耗等查询提速）"
+        else
+            echo "  ⚠ 索引安装失败（不影响功能，仅性能略差）"
         fi
         echo ""
         echo "  → 重启 Grafana（让新仪表盘生效）"
@@ -199,10 +214,10 @@ echo "📊 服务状态:"
 docker compose ps
 
 # ============================================================
-# 安装坐标转换函数（v1.4.2+ 地图源切换功能依赖）
+# 安装 SQL：坐标函数 + 分时电价表 + 性能索引
 # ============================================================
 echo ""
-echo "📍 安装地图坐标转换函数（v1.4.2 新功能）..."
+echo "📍 安装 SQL（坐标函数 / 分时电价 / 性能索引）..."
 
 # 等数据库就绪（最多 60 秒）
 DB_CONTAINER=$(docker compose ps -q database 2>/dev/null | head -1)
@@ -220,19 +235,40 @@ for i in $(seq 1 30); do
 done
 
 if [ "$DB_READY" -eq 1 ]; then
-    SQL_URL="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/install-coord-functions.sql"
-    if curl -fsSL "$SQL_URL" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
-        echo "  ✓ 坐标转换函数已安装（地图源切换+GCJ-02 自动纠偏可用）"
+    SQL_BASE="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql"
+    SQL_OK=1
+
+    if curl -fsSL "$SQL_BASE/install-coord-functions.sql" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
+        echo "  ✓ 坐标转换函数已装（地图源切换+GCJ-02 自动纠偏）"
     else
-        echo "  ⚠ 函数安装失败，地图源切换功能暂不可用"
-        echo "    安装完成后手动运行："
-        echo "    curl -fsSL $SQL_URL | docker exec -i $DB_CONTAINER psql -U teslamate -d teslamate"
+        echo "  ⚠ 坐标函数安装失败"
+        SQL_OK=0
+    fi
+
+    if curl -fsSL "$SQL_BASE/install-tou.sql" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
+        echo "  ✓ 分时电价表+函数已装（v1.5.0+，首次装好后到「⚡ 分时电价配置」仪表盘填规则）"
+    else
+        echo "  ⚠ 分时电价安装失败，TOU 仪表盘可能不可用"
+        SQL_OK=0
+    fi
+
+    if curl -fsSL "$SQL_BASE/install-indexes.sql" | docker exec -i "$DB_CONTAINER" psql -U teslamate -d teslamate >/dev/null 2>&1; then
+        echo "  ✓ 性能索引已装（v1.6.1+，电池健康/天气-能耗等查询提速）"
+    else
+        echo "  ⚠ 索引安装失败（不影响功能，仅性能略差）"
+        SQL_OK=0
+    fi
+
+    if [ "$SQL_OK" -eq 0 ]; then
+        echo ""
+        echo "    部分 SQL 安装失败，可手动重跑（按需选）："
+        echo "    for f in install-coord-functions install-tou install-indexes; do"
+        echo "      curl -fsSL $SQL_BASE/\$f.sql | docker exec -i $DB_CONTAINER psql -U teslamate -d teslamate"
+        echo "    done"
     fi
 else
-    echo "  ⚠ 数据库 60 秒内未就绪，跳过函数安装"
-    echo "    服务起来后手动运行 bash scripts/upgrade.sh 或下面命令："
-    echo "    SQL_URL=\"https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/install-coord-functions.sql\""
-    echo "    curl -fsSL \"\$SQL_URL\" | docker exec -i $DB_CONTAINER psql -U teslamate -d teslamate"
+    echo "  ⚠ 数据库 60 秒内未就绪，跳过 SQL 安装"
+    echo "    服务起来后重跑此脚本（自动进入升级模式）即可装上 SQL"
 fi
 
 echo ""

@@ -1,5 +1,33 @@
 # 更新日志
 
+## [v1.6.1] - 2026-05-02
+
+### 🆕 性能优化：positions 表索引（来自上游 issue [#5306](https://github.com/adriankumpf/teslamate/issues/5306)）
+
+新增 `sql/install-indexes.sql`：在 TeslaMate 核心表 `positions` 上加 `(car_id, date)` btree 索引，覆盖「按车按时间倒序取最新」类查询。
+
+- **受益面板**：电池健康（State of Health）、行程列表、充电费用统计、省钱分析、天气-能耗关联（v1.6.0）、分时电价回填（v1.5.0 `backfill_all_tou`）
+- **实测**：单车 80 万行受影响查询从 200ms 降到 < 5ms（来自上游 issue 报告）
+- **幂等**：`CREATE INDEX IF NOT EXISTS`，重跑零副作用；上游若将来正式合 migration 不会冲突
+
+### 🐛 Bug 修复 — `simple-deploy.sh` 漏装分时电价 SQL（v1.5.0 遗留）
+
+v1.5.0 引入分时电价系统时，`simple-deploy.sh`（一键脚本）只装了坐标函数，**漏装了 `install-tou.sql`**。结果：用 `simple-deploy.sh` 部署的用户打开「⚡ 分时电价配置」仪表盘时函数不存在，5 个配置面板全显示红三角，「24 小时电价分布」全 0。
+
+本次 `simple-deploy.sh` 升级路径 + 新装路径都补齐 SQL 三件套（坐标函数 + 分时电价 + 性能索引）。
+
+### 📚 文档/工作流
+
+- **README 方法 C**：原本两条独立 `curl` 改成 `for f in install-coord-functions install-tou install-indexes; do curl ... ; done` 循环，并显著标注 **Watchtower 自动升镜像的用户每次升级后只需重跑这一段**就能拿到最新 SQL 改动
+- **`scripts/upgrade.sh`**：6 步 → 7 步（[5/7] 是新加的索引步骤），并修了文件顶部注释里的步骤号错乱（[1/4] / [2/6] / [3/6] 混乱 → 全部 [N/7] 一致）
+- **`migrate-from-official.sh`**：交互+非交互两个 SQL 安装段都加 `install-indexes`
+- **`tou-config` 仪表盘顶部 markdown**：加「⚡ 范围说明」blockquote 明确 TOU 只作用于家充（交流慢充），直流快充按桩侧上报金额计费、不参与本表分时重算
+
+### 🔧 内部
+
+- 新建 `sql/install-indexes.sql` 独立文件而非塞进 `install-tou.sql`：日后上游 #5306 合 migration 时方便单独删
+- 索引名 `idx_positions_car_id_date_btree`（带 `_btree` 后缀避免和上游可能采用的命名冲突）
+
 ## [v1.6.0] - 2026-04-30
 
 ### 🆕 新增「🌡️ 天气-能耗关联」仪表盘（中文版独有）

@@ -173,7 +173,7 @@ if grep -m1 -qE "^[[:space:]]+image:[[:space:]]*${OFFICIAL_IMAGE_RE}" "$COMPOSE_
 elif grep -m1 -qE "^[[:space:]]+image:[[:space:]]*bswlhbhmt816/teslamate-chinese-dashboards" "$COMPOSE_FILE"; then
     echo "ℹ️  你已经在我们的镜像上了，image 不需要改。"
     echo
-    read -rp "要重装/升级 SQL（坐标函数 + 分时电价旁路表）吗？ [y/N] " sql_confirm </dev/tty
+    read -rp "要重装/升级 SQL（坐标函数 + 分时电价 + 性能索引）吗？ [y/N] " sql_confirm </dev/tty
     if [[ "$sql_confirm" == "y" || "$sql_confirm" == "Y" ]]; then
         cd "$COMPOSE_DIR"
         detect_db_container || true
@@ -183,6 +183,9 @@ elif grep -m1 -qE "^[[:space:]]+image:[[:space:]]*bswlhbhmt816/teslamate-chinese
         install_sql "分时电价旁路表（不动 TeslaMate 任何表）" \
             "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${REPO_REF}/sql/install-tou.sql" \
             "tou-sql" || true
+        install_sql "性能优化索引（positions 表 car_id+date btree）" \
+            "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${REPO_REF}/sql/install-indexes.sql" \
+            "indexes-sql" || true
     fi
     echo
     if [[ ${#FAILED_STEPS[@]} -eq 0 ]]; then
@@ -238,7 +241,7 @@ $DC pull grafana
 $DC up -d grafana
 echo "✓ grafana 已切到中文版镜像"
 
-# 10. 装 SQL（探测 DB 容器名 → install_sql × 2）
+# 10. 装 SQL（探测 DB 容器名 → install_sql × 3）
 detect_db_container || true
 install_sql "坐标转换函数（地图轨迹纠偏）" \
     "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${REPO_REF}/sql/install-coord-functions.sql" \
@@ -246,6 +249,9 @@ install_sql "坐标转换函数（地图轨迹纠偏）" \
 install_sql "分时电价旁路表（不动 TeslaMate 任何表）" \
     "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${REPO_REF}/sql/install-tou.sql" \
     "tou-sql" || true
+install_sql "性能优化索引（positions 表 car_id+date btree）" \
+    "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${REPO_REF}/sql/install-indexes.sql" \
+    "indexes-sql" || true
 
 # 11. 完成 / 部分完成 汇总
 trap - ERR  # 后面只是 echo，不需要再触发 on_error

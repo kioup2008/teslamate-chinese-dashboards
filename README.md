@@ -43,7 +43,7 @@
 > bash scripts/upgrade.sh
 > ```
 >
-> 自动 6 步：git pull → 检测 PG → 装地图函数 → 装分时电价 → 检查 Grafana 插件 → 重启 Grafana。**重复跑不会丢数据**。
+> 自动 7 步：git pull → 检测 PG → 装地图函数 → 装分时电价 → 装性能索引（v1.6.1+）→ 检查 Grafana 插件 → 重启 Grafana。**重复跑不会丢数据**。
 >
 > <a id="upgrade-method-c"></a>
 >
@@ -53,15 +53,17 @@
 > # 1. 拉新镜像（带 Volkov 插件 + 43 个仪表盘）
 > docker compose pull && docker compose up -d
 >
-> # 2. 装坐标函数 + 分时电价系统（远程 curl，不用 git clone）
-> curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/v1.5.0/sql/install-coord-functions.sql \
->   | docker exec -i teslamate-database-1 psql -U teslamate -d teslamate
-> curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/v1.5.0/sql/install-tou.sql \
->   | docker exec -i teslamate-database-1 psql -U teslamate -d teslamate
+> # 2. 装 SQL 三件套（坐标函数 + 分时电价 + 性能索引，远程 curl 不用 git clone）
+> for f in install-coord-functions install-tou install-indexes; do
+>   curl -fsSL "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/${f}.sql" \
+>     | docker exec -i teslamate-database-1 psql -U teslamate -d teslamate
+> done
 >
 > # 3. 重启 Grafana
 > docker compose restart grafana
 > ```
+>
+> Watchtower 自动升镜像的用户每次升级后**只需要重跑这一段**就能拿到最新 SQL 改动（函数 / 索引 / TOU）。脚本是 `IF NOT EXISTS / CREATE OR REPLACE`，重跑零风险。
 >
 > <a id="upgrade-method-d"></a>
 >
