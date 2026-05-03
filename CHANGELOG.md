@@ -2,7 +2,7 @@
 
 ## [v1.6.1] - 2026-05-02
 
-### 🆕 性能优化：positions 表索引（来自上游 issue [#5306](https://github.com/adriankumpf/teslamate/issues/5306)）
+### 🆕 性能优化：positions 表索引（来自上游 issue [#5306](https://github.com/teslamate-org/teslamate/issues/5306)）
 
 新增 `sql/install-indexes.sql`：在 TeslaMate 核心表 `positions` 上加 `(car_id, date)` btree 索引，覆盖「按车按时间倒序取最新」类查询。
 
