@@ -38,17 +38,6 @@ REPO_REF=v1.6.2 bash migrate-from-official.sh
 
 应该是之前 v3.0 升级时随同合并，**用户已经受益**。
 
-### 🚫 不做：AP/FSD 占比统计
-
-完整验证后确认**国内家用方案不可行**（详见维护者笔记）：
-- ❌ Tesla Fleet API REST `vehicle_data` 不暴露 `lane_assist_level` 字段（实测）
-- ❌ Fleet Telemetry push stream 暴露 `lane_assist_level` + `SelfDrivingMilesSinceReset`，但需公网 HTTPS endpoint + mTLS client cert 验证
-- ❌ Cloudflare Free Plan 不支持 mTLS server-side（API Shield 是 Pro+ 功能 $20/月起）
-- ❌ Owner API + pedal 推断 — Owner API 不返回 pedal 字段
-- ❌ speed 推断 — 不真实，混 CC + 老司机干扰
-
-**等以下任一发生再回头**：Tesla 把字段加到 REST、TeslaMate 主线切 Fleet API、有人主动 PR `tesla-can-web-2` 跨项目集成。
-
 ## [v1.6.1] - 2026-05-02
 
 ### 🆕 性能优化：positions 表索引（来自上游 issue [#5306](https://github.com/teslamate-org/teslamate/issues/5306)）
