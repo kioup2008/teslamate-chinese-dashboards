@@ -21,8 +21,6 @@ REPO_REF=v1.6.2 bash migrate-from-official.sh
 
 **首次跑就抓到一个真 bug**：QUICKSTART.md 详细文档列表漏了 `install-indexes`，已修。
 
-发版前规范：先跑 `bash scripts/check-sql-trio.sh` 验证，再 push。
-
 ### 📚 文档
 
 - README 方法 C 加 `REF=main` 注释，明确 SQL 拉取的 ref 可替换为具体 tag
