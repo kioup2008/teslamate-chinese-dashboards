@@ -39,14 +39,38 @@ if ! command -v docker &> /dev/null; then
     echo "请先安装 Docker："
     echo "  Ubuntu: curl -fsSL https://get.docker.com | bash"
     echo "  CentOS: sudo yum install docker"
+    echo "  群晖 NAS：套件中心安装「Container Manager」（DSM 7.2+）或「Docker」（旧版）"
     echo ""
     exit 1
 fi
 
-if ! command -v docker compose &> /dev/null && ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose 未安装"
+# 检查 docker daemon 实际可访问（不只是命令存在）—— 群晖 SSH 用户没 docker 组权限会卡这里
+if ! docker info >/dev/null 2>&1; then
+    echo "❌ docker 命令存在但跑不动（没有 daemon 访问权限）"
     echo ""
-    echo "请先安装 Docker Compose"
+    echo "可能原因 + 修法："
+    echo "  - 群晖 SSH 用户：先在 DSM 控制面板开启 root SSH，sudo -i 切 root 后重跑此脚本"
+    echo "    或改用 Container Manager「项目」模式 GUI 部署（不用命令行）"
+    echo "  - Linux 用户：sudo usermod -aG docker \$USER && newgrp docker"
+    echo "  - 任何系统：用 sudo bash $(basename "$0")"
+    echo ""
+    exit 1
+fi
+
+# 检查 Docker Compose 是 v1 还是 v2，并把命令名存到 $DC（后续所有命令通过 $DC 调用）
+if docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+    echo "⚠️ 检测到 docker-compose v1（已过时），建议升级到 v2（docker compose）"
+    echo "   v2 安装：sudo apt install docker-compose-plugin（或参考 docker.com 官方文档）"
+    echo "   本脚本仍兼容 v1，但部分命令可能稍慢"
+    echo ""
+else
+    echo "❌ Docker Compose 未安装（v1 / v2 都没找到）"
+    echo ""
+    echo "请先安装 Docker Compose v2（推荐）："
+    echo "  sudo apt install docker-compose-plugin"
     exit 1
 fi
 
@@ -66,13 +90,13 @@ if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
     echo "🔄 检测到已有安装，进入升级模式（不会改你的配置）..."
     echo ""
     echo "  → 拉取最新镜像"
-    docker compose pull
+    $DC pull
     echo ""
     echo "  → 重启服务（应用新镜像）"
-    docker compose up -d
+    $DC up -d
     echo ""
     echo "  → 等数据库就绪"
-    DB_CONTAINER=$(docker compose ps -q database 2>/dev/null | head -1)
+    DB_CONTAINER=$($DC ps -q database 2>/dev/null | head -1)
     [ -z "$DB_CONTAINER" ] && DB_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'teslamate.*database' | head -1)
     DB_READY=0
     for i in $(seq 1 30); do
@@ -106,14 +130,14 @@ if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
         fi
         echo ""
         echo "  → 重启 Grafana（让新仪表盘生效）"
-        GRAFANA_CONTAINER=$(docker compose ps -q grafana 2>/dev/null | head -1)
+        GRAFANA_CONTAINER=$($DC ps -q grafana 2>/dev/null | head -1)
         [ -z "$GRAFANA_CONTAINER" ] && GRAFANA_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'teslamate.*grafana' | head -1)
         [ -n "$GRAFANA_CONTAINER" ] && docker restart "$GRAFANA_CONTAINER" >/dev/null
     else
         echo ""
         echo "  ❌ 数据库 60 秒内未就绪，SQL 函数没装上"
         echo "     等服务起来后**重跑此脚本**（自动进入升级模式重试）："
-        echo "     wget -qO- https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash"
+        echo "     curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash"
         exit 1
     fi
     echo ""
@@ -197,27 +221,35 @@ volumes:
   mosquitto-data:
 EOF
 
-# 生成随机加密密钥（兼容 Linux 和 macOS）
+# 生成随机加密密钥 + 随机 DB 密码（兼容 Linux 和 macOS）
 ENCRYPTION_KEY=$(openssl rand -hex 32)
+DB_PASS=$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)
 if sed --version 2>/dev/null | grep -q GNU; then
   sed -i "s/INSERT_RANDOM_KEY_HERE/$ENCRYPTION_KEY/" docker-compose.yml
+  sed -i "s/DATABASE_PASS=password/DATABASE_PASS=$DB_PASS/g" docker-compose.yml
+  sed -i "s/POSTGRES_PASSWORD=password/POSTGRES_PASSWORD=$DB_PASS/" docker-compose.yml
 else
   sed -i "" "s/INSERT_RANDOM_KEY_HERE/$ENCRYPTION_KEY/" docker-compose.yml
+  sed -i "" "s/DATABASE_PASS=password/DATABASE_PASS=$DB_PASS/g" docker-compose.yml
+  sed -i "" "s/POSTGRES_PASSWORD=password/POSTGRES_PASSWORD=$DB_PASS/" docker-compose.yml
 fi
 
+# 限制 docker-compose.yml 文件权限（含 ENCRYPTION_KEY + DB 密码 + 后续 Tesla token）
+chmod 600 docker-compose.yml
+
 echo ""
-echo "✅ 配置文件已生成"
+echo "✅ 配置文件已生成（含随机密钥 + 随机 DB 密码 + 文件权限 600）"
 echo ""
 
 # 启动服务
 echo "🚀 启动服务（首次启动需要下载镜像，请耐心等待 2-5 分钟）..."
 echo "   如果长时间卡在拉取镜像，请参考文末说明配置 Docker 镜像代理。"
-docker compose up -d
+$DC up -d
 
 # 检查服务状态
 echo ""
 echo "📊 服务状态:"
-docker compose ps
+$DC ps
 
 # ============================================================
 # 安装 SQL：坐标函数 + 分时电价表 + 性能索引
@@ -226,7 +258,7 @@ echo ""
 echo "📍 安装 SQL（坐标函数 / 分时电价 / 性能索引）..."
 
 # 等数据库就绪（最多 60 秒）
-DB_CONTAINER=$(docker compose ps -q database 2>/dev/null | head -1)
+DB_CONTAINER=$($DC ps -q database 2>/dev/null | head -1)
 if [ -z "$DB_CONTAINER" ]; then
     DB_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'teslamate.*database' | head -1)
 fi
@@ -281,13 +313,24 @@ echo "=============================================="
 echo "✅ 安装完成！"
 echo "=============================================="
 echo ""
+echo "🚨 立刻保存这两条信息（丢了再也找不回）："
+echo ""
+echo "  ENCRYPTION_KEY = $ENCRYPTION_KEY"
+echo "  DATABASE_PASS  = $DB_PASS"
+echo ""
+echo "  原文件位置: $INSTALL_DIR/docker-compose.yml （已设 mode 600）"
+echo "  抄到密码管理器（1Password / Keychain / Bitwarden）以备未来迁移用。"
+echo "  KEY 丢失 = Tesla Token 永远解密不出来 = 必须重新授权。"
+echo ""
 echo "📱 访问地址："
 echo "  - TeslaMate:  http://localhost:4000"
 echo "  - Grafana:     http://localhost:3000"
 echo ""
 echo "🔐 Grafana 登录信息："
 echo "  - 用户名: admin"
-echo "  - 密码: admin（建议登录后修改）"
+echo "  - 密码: admin"
+echo "  ⚠️ 公网部署必须立即改 Grafana admin 密码"
+echo "    Grafana 右上角头像 → Profile → Change password"
 echo ""
 echo "📝 下一步："
 echo "  1. 访问 TeslaMate: http://localhost:4000"
@@ -301,8 +344,8 @@ echo "📚 相关文档（在线）："
 echo "  https://github.com/wjsall/teslamate-chinese-dashboards"
 echo ""
 echo "🆘 遇到问题？"
-echo "  查看日志: docker compose logs -f"
-echo "  重启服务: docker compose restart"
+echo "  查看日志: $DC logs -f"
+echo "  重启服务: $DC restart"
 echo ""
 echo "🍓 树莓派用户提示："
 echo "  必须使用 64 位系统（64-bit Raspberry Pi OS），32 位系统不支持。"

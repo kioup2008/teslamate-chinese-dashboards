@@ -238,9 +238,9 @@ docker compose logs grafana | grep -i "error\|failed"
 
 #### 1. 国内用户：是否配置了 Tesla 中国区 API？
 
-中国账号必须用 `auth.tesla.cn`（不是 `auth.tesla.com`）。检查 `~/teslamate-chinese-dashboards/docker-compose.yml`：
+中国账号必须用 `auth.tesla.cn`（不是 `auth.tesla.com`）。检查 `~/teslamate-chinese/docker-compose.yml`：
 ```bash
-grep -E "TESLA_API_HOST|TESLA_WSS_HOST" ~/teslamate-chinese-dashboards/docker-compose.yml
+grep -E "TESLA_API_HOST|TESLA_WSS_HOST" ~/teslamate-chinese/docker-compose.yml
 ```
 应该看到：
 ```
@@ -558,7 +558,7 @@ wget -qO- https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/
 #### B. git clone 用户
 
 ```bash
-cd ~/teslamate-chinese-dashboards     # 你的克隆目录
+cd ~/teslamate-chinese     # 你的克隆目录
 bash scripts/upgrade.sh
 ```
 
@@ -567,7 +567,7 @@ bash scripts/upgrade.sh
 ⚠️ **如果你从 v1.4.1 或更早版本升级到 v1.4.2+，单跑这条会让 9 个含地图的仪表盘报错** `function lat_for_map does not exist`。请用上面 A 或 B。
 
 ```bash
-cd ~/teslamate-chinese-dashboards  # 进入安装目录
+cd ~/teslamate-chinese  # 进入安装目录
 docker compose pull
 docker compose up -d
 ```
@@ -688,7 +688,7 @@ docker compose restart grafana
 
 **备份：**
 ```bash
-cd ~/teslamate-chinese-dashboards
+cd ~/teslamate-chinese
 docker compose exec database pg_dump -U teslamate teslamate > backup_$(date +%Y%m%d_%H%M).sql
 ```
 
@@ -711,7 +711,7 @@ docker compose start teslamate
 ### 重置（保留数据）
 
 ```bash
-cd ~/teslamate-chinese-dashboards
+cd ~/teslamate-chinese
 docker compose down          # 停止并删除容器
 docker compose up -d         # 重新创建并启动
 ```
@@ -723,7 +723,7 @@ docker compose up -d         # 重新创建并启动
 > ⚠️ **不可恢复！** 执行前请先备份数据库！
 
 ```bash
-cd ~/teslamate-chinese-dashboards
+cd ~/teslamate-chinese
 docker compose down -v       # 停止并删除容器和卷（数据会丢失！）
 docker compose up -d         # 重新开始
 ```

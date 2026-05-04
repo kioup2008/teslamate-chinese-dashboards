@@ -139,12 +139,12 @@ docker compose version
 在终端里运行以下两条命令（复制粘贴 → 回车 → 等 5 分钟）：
 
 ```bash
-wget https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh
+curl -fsSLO https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh
 bash simple-deploy.sh
 ```
 
 脚本会自动：
-- 创建 `~/teslamate-chinese-dashboards/` 工作目录
+- 创建 `~/teslamate-chinese/` 工作目录
 - 生成 `docker-compose.yml` 配置文件
 - **生成随机的 ENCRYPTION_KEY**（用来加密 Tesla Token 的密钥）
 - 启动所有服务（TeslaMate / PostgreSQL / Grafana / MQTT，共 4 个容器）
@@ -152,12 +152,12 @@ bash simple-deploy.sh
 
 ### ⚠️ 装完立即做：备份你的 ENCRYPTION_KEY
 
-脚本自动生成的密钥写在 `~/teslamate-chinese-dashboards/docker-compose.yml` 里。**这个密钥用来加密你的特斯拉 Token，一旦丢了或被改，TeslaMate 就解不开 Token 永远卡死，必须重新授权。**
+脚本自动生成的密钥写在 `~/teslamate-chinese/docker-compose.yml` 里。**这个密钥用来加密你的特斯拉 Token，一旦丢了或被改，TeslaMate 就解不开 Token 永远卡死，必须重新授权。**
 
 立刻执行（找出来 → 备份）：
 
 ```bash
-grep ENCRYPTION_KEY ~/teslamate-chinese-dashboards/docker-compose.yml
+grep ENCRYPTION_KEY ~/teslamate-chinese/docker-compose.yml
 ```
 
 输出大概长这样：
@@ -175,7 +175,7 @@ grep ENCRYPTION_KEY ~/teslamate-chinese-dashboards/docker-compose.yml
 > {"registry-mirrors": ["https://dockerproxy.cn"]}
 > EOF
 > sudo systemctl daemon-reload && sudo systemctl restart docker
-> # 然后回到 ~/teslamate-chinese-dashboards/，重新跑：docker compose pull && docker compose up -d
+> # 然后回到 ~/teslamate-chinese/，重新跑：docker compose pull && docker compose up -d
 > ```
 
 ---
@@ -419,7 +419,7 @@ docker compose up -d
 如果以下 6 项都打勾，说明装得没问题：
 
 ```bash
-cd ~/teslamate-chinese-dashboards     # 方法 A 用户；方法 B 改成你的目录
+cd ~/teslamate-chinese     # 方法 A 用户；方法 B 改成你的目录
 docker compose ps
 ```
 

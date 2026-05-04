@@ -34,7 +34,7 @@
 > ### 方法 A — 一键脚本用户（之前用 `simple-deploy.sh` 装的）
 >
 > ```bash
-> wget -qO- https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash
+> curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh | bash
 > ```
 >
 > 脚本自动检测现有安装 → 切升级模式（拉新镜像 + 装新 SQL 函数 + 重启 Grafana）。**不会重置 ENCRYPTION_KEY 或配置**。
@@ -79,7 +79,7 @@
 > ### 方法 D — 从官方源迁移（你以前是 `teslamate/grafana`）
 >
 > ```bash
-> wget https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/migrate-from-official.sh
+> curl -fsSLO https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/migrate-from-official.sh
 > bash migrate-from-official.sh
 > ```
 >
@@ -392,7 +392,7 @@ open http://localhost:3000
 
 ```bash
 # 在服务器上执行
-wget https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh
+curl -fsSLO https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh
 bash simple-deploy.sh
 ```
 
