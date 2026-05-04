@@ -1,5 +1,43 @@
 # 更新日志
 
+## [v1.6.3] - 2026-05-04
+
+### 🐛 真 Bug 修复：Grafana 12+ form-panel 静默装不上（影响 v1.5.0+ 所有用户）
+
+`Dockerfile` 的 `ENV GF_INSTALL_PLUGINS="volkovlabs-form-panel 6.3.2"` 在新版 Grafana 上**不生效**，导致「⚡ 分时电价配置」仪表盘所有 form-panel 红三角。详见 issue #13。
+
+**根因**：
+
+1. Grafana 12+ 重命名 `GF_INSTALL_PLUGINS` → `GF_PLUGINS_PREINSTALL`，旧名作为别名保留但走同一份预装机制
+2. 上游 [teslamate-org/teslamate](https://github.com/teslamate-org/teslamate/blob/main/grafana/Dockerfile) 显式设 `GF_PLUGINS_PREINSTALL_DISABLED=true` 关掉了整个预装机制
+3. 旧名是别名 → DISABLED 同时盖住 `GF_INSTALL_PLUGINS` → form-panel 没装
+
+**影响范围**：v1.5.0 及以后所有镜像用户都中招（v1.5.0 是引入 form-panel 的版本）。早期 base image 用 Grafana 11 没事。
+
+**修法**：改用 build-time `grafana cli plugins install`，绕开所有 env var 风险（`Dockerfile`）。
+
+```dockerfile
+USER root
+RUN grafana cli --pluginsDir /var/lib/grafana/plugins \
+    plugins install volkovlabs-form-panel 6.3.2
+USER grafana
+```
+
+**升级方法**：
+
+```bash
+docker compose pull grafana
+docker compose up -d --force-recreate grafana
+docker exec teslamate-grafana-1 grafana cli plugins ls | grep volkovlabs-form-panel
+# 期望: volkovlabs-form-panel @ 6.3.2
+```
+
+### 📚 文档
+
+- `TROUBLESHOOTING.md` 「分时电价配置面板空白」诊断段落更新：明确 v1.5-v1.6.2 受影响 + 给出升级和手动装两种修法 + 加验证命令
+
+---
+
 ## [v1.6.2] - 2026-05-03
 
 ### 🔒 安全：SQL 远程拉取支持锁固定版本
