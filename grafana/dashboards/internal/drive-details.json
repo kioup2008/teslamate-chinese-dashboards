@@ -1688,7 +1688,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  CASE WHEN floor(secs / 86400) > 0 THEN floor(secs / 86400)::text || '天' ELSE '' END ||\n  floor(secs::bigint % 86400 / 3600)::text || '时' ||\n  floor(secs::bigint % 3600 / 60)::text || '分'\nFROM (\n  SELECT EXTRACT(EPOCH FROM (end_date - start_date))::bigint AS secs\n  FROM drives\n  WHERE id = $drive_id\n) sub",
+          "rawSql": "SELECT\n  CASE WHEN floor(secs / 86400) > 0 THEN floor(secs / 86400)::text || '天' ELSE '' END ||\n  floor(secs::bigint % 86400 / 3600)::text || '时' ||\n  floor(secs::bigint % 3600 / 60)::text || '分'\nFROM (\n  SELECT COALESCE(EXTRACT(EPOCH FROM (end_date - start_date))::bigint, 0) AS secs\n  FROM drives\n  WHERE id = $drive_id\n) sub",
           "refId": "A",
           "sql": {
             "columns": [

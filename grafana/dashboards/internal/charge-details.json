@@ -609,7 +609,7 @@
           "orderByTime": "ASC",
           "policy": "default",
           "rawQuery": true,
-          "rawSql": "SELECT\n  CASE WHEN floor(secs / 3600) > 0 THEN floor(secs / 3600)::text || '时' ELSE '' END ||\n  CASE WHEN floor(secs::bigint % 3600 / 60) > 0 OR floor(secs / 3600) > 0\n       THEN floor(secs::bigint % 3600 / 60)::text || '分' ELSE '' END ||\n  floor(secs::bigint % 60)::text || '秒' AS \"时长\"\nFROM (\n  SELECT EXTRACT(EPOCH FROM (max(date) - min(date)))::bigint AS secs\n  FROM charges\n  WHERE charging_process_id = $charging_process_id\n) sub",
+          "rawSql": "SELECT\n  CASE WHEN floor(secs / 3600) > 0 THEN floor(secs / 3600)::text || '时' ELSE '' END ||\n  CASE WHEN floor(secs::bigint % 3600 / 60) > 0 OR floor(secs / 3600) > 0\n       THEN floor(secs::bigint % 3600 / 60)::text || '分' ELSE '' END ||\n  floor(secs::bigint % 60)::text || '秒' AS \"时长\"\nFROM (\n  SELECT COALESCE(EXTRACT(EPOCH FROM (max(date) - min(date)))::bigint, 0) AS secs\n  FROM charges\n  WHERE charging_process_id = $charging_process_id\n) sub",
           "refId": "A",
           "resultFormat": "time_series",
           "select": [
