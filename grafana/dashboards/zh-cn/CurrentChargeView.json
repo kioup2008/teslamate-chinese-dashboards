@@ -1422,7 +1422,7 @@
               }
             ]
           },
-          "unit": "Km"
+          "unit": "none"
         },
         "overrides": [
           {
@@ -1433,7 +1433,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "里程表"
+                "value": "里程表 (km)"
               }
             ]
           },
@@ -2056,7 +2056,7 @@
               }
             ]
           },
-          "unit": "kwatt"
+          "unit": "volt"
         },
         "overrides": [
           {

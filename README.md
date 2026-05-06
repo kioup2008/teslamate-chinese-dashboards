@@ -63,9 +63,12 @@
 > # 默认用 main（跟 :latest 镜像同步）。担心仓库被劫持的话把 main 替换成具体 tag（如 v1.6.2）锁版本：
 > REF=main   # 或 v1.6.2
 >
+> # 自动找 database 容器名（你的项目目录不叫 teslamate 时容器名会不同，直接 ps 拿）
+> DB=$(docker compose ps -q database)
+>
 > for f in install-coord-functions install-tou install-indexes; do
 >   curl -fsSL "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${REF}/sql/${f}.sql" \
->     | docker exec -i teslamate-database-1 psql -U teslamate -d teslamate
+>     | docker exec -i $DB psql -U teslamate -d teslamate
 > done
 >
 > # 3. 重启 Grafana
@@ -95,9 +98,21 @@
 >
 > 或直接打开「**⚡ 分时电价配置**」仪表盘 →「**🌆 一键导入城市模板**」选你城市，配完点「**🔄 重算所有历史充电**」按钮把历史按分时电价重算。
 >
+> ### 升级前必读：先备份
+>
+> 任何升级（含 v1.6.x → v1.6.x、PG 大版本升级）前都强烈建议先做完整数据库 dump：
+> ```bash
+> docker compose exec -T database pg_dump -U teslamate teslamate > backup_$(date +%Y%m%d).sql
+> ```
+> 详见 [TeslaMate 官方 backup_restore](https://docs.teslamate.org/docs/maintenance/backup_restore) + [我们的 TROUBLESHOOTING「整机迁移」](TROUBLESHOOTING.md)。
+>
 > ### 升级出问题？完全可逆
 >
 > TeslaMate 任何表都没动，分时电价数据全在我们新建的旁路表。详见 [TROUBLESHOOTING.md「v1.5.0 分时电价升级排错 / 回滚」](TROUBLESHOOTING.md#tou-rollback) | [Telegram 交流群](https://t.me/+BeOASgmvE_IyNzNl)
+>
+> ### v1.6.6+ 升级提示
+>
+> v1.6.6 修复了备份恢复跟 TeslaMate 官方流程不对齐的真 bug（缺 `DROP SCHEMA private` + `CREATE EXTENSION cube`）。**如果你做过整机迁移且遇到 token 解密失败被迫重新授权过**——那就是这个 bug，新版恢复流程不会再触发。详见 [v1.6.6 release notes](https://github.com/wjsall/teslamate-chinese-dashboards/releases/tag/v1.6.6)。
 >
 
 ---
@@ -206,7 +221,7 @@
 | 文件总大小 | ~1.2MB |
 | 汉化完成度 | 99%+ |
 | 质量等级 | A+ |
-| 最后更新 | 2026-05-02 |
+| 最后更新 | 2026-05-06 |
 
 **43 个 Dashboard 深度汉化，持续优化中，开箱即用！** 🎉
 

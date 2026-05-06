@@ -1,5 +1,47 @@
 # 更新日志
 
+## [v1.6.7] - 2026-05-06
+
+### 🐛 修复（v1.6.6 同源 + 更广 4 路审计）
+
+跟 v1.6.6 同一天发，因为 4 路文档审计（TROUBLESHOOTING / QUICKSTART / README / DASHBOARD_MAP 各开一个 agent 对照官方）找出 15 条真 bug + 3 条改善。按「audit 出的问题不分批发」规则一次修完。
+
+**1. 备份恢复孪生残留 bug**（`TROUBLESHOOTING.md` 第「数据库备份与恢复」段）：跟 v1.6.6 修的「整机迁移」同一根问题——简易备份恢复段也漏 `DROP SCHEMA private CASCADE` + `CREATE EXTENSION cube/earthdistance`。修后跟官方完全对齐。
+
+**2. PostgreSQL 大版本升级章节**（新增 `TROUBLESHOOTING.md`「PostgreSQL 大版本升级」）：用户改 `image: postgres:18-trixie` 不删卷直接重启会进入 `database files are incompatible with server` 反复重启循环——官方 [upgrading_postgres](https://docs.teslamate.org/docs/maintenance/upgrading_postgres) 流程之前没在我们文档里覆盖到。
+
+**3. 子路径反代缺 WebSocket 头**（`TROUBLESHOOTING.md` 第「反向代理后访问路径报错」段）：Nginx `location /teslamate/` 块漏 `proxy_http_version 1.1` + `Upgrade` + `Connection "upgrade"` 三行——TeslaMate 用 Phoenix LiveView，缺这三行进得去主页但**实时车辆状态 / 地图轨迹不更新**。
+
+**4. URL_PATH 默认值说明**（同段）：补一行「根路径用户无需配置（默认 `/`）」，避免根路径用户照搬子路径配置错乱。
+
+**5. NOMINATIM_PROXY 措辞修正**（行 537）：原文「即使代理支持 HTTPS，此处也必须写 http://」容易被读成 HTTPS 流量走 http://。改成更准确的「TeslaMate 仅识别 HTTP 类型代理（HTTP CONNECT 方式），不支持 SOCKS5 / HTTPS 隧道型代理」。
+
+**6. 内存最低要求口径**（`QUICKSTART.md` 行 46, 56）：之前写「2GB 起」，TeslaMate 官方实际是 1GB 即可——树莓派 3 / 入门 VPS 用户被我们的文档吓退过。改成「最低 1GB（推荐 2GB）」。
+
+**7. tesla_auth 文件名后缀写死防腐**（`QUICKSTART.md` 行 317）：之前直接列 `.tar.xz` 等具体后缀，作者偶尔会调（`.zip` / `.tar.gz` 都见过）。改成「以 release 页面当下提供的为准」+ 模糊指引。
+
+**8. README 方法 C 升级容器名硬编码**：之前写 `docker exec -i teslamate-database-1 psql ...`，用户 git clone 到不同目录名（如 `teslamate-chinese-dashboards`）时容器名会变成 `teslamate-chinese-dashboards-database-1`，命令报错。改用 `DB=$(docker compose ps -q database)` 自动检测。
+
+**9. README 升级 callout 加 backup 提醒 + v1.6.6 提示**：升级前没显式提醒 `pg_dump` backup（官方强烈建议）。
+
+**10. README 「最后更新」过期**：之前写 2026-05-02，今天 2026-05-06。
+
+**11. DASHBOARD_MAP 漏掉 `tire-pressure` 仪表盘**：实际存在但文档完全没提，SCENE_GUIDE 里推荐用户「长途行前看胎压」却找不到分类。补到「车辆状态」分类（5 → 6 个）。
+
+**12. DASHBOARD_MAP 漏掉 `mileage`（车辆里程曲线图）**：跟 `MileageStats`（数字汇总）是两个独立 Dashboard，文档只提了后者。补到「驾驶分析」分类（10 → 11 个）。
+
+**13. DASHBOARD_MAP 总数说明自相矛盾**：声称 43 个 7 大类，但分类条目累加 = 45+（部分核心 Dashboard 跨分类重复列出），用户怀疑数对不上。改成显式说明「分类按主题归纳，部分跨多分类，独立 Dashboard 共 43 个」。
+
+**14. QUICKSTART vs DASHBOARD_MAP「第一周必看」推荐 0 重合**：QUICKSTART 推 5 个（概览/驾驶记录追踪/充电记录/电池健康度/省钱分析），DASHBOARD_MAP 推 4 个（概览/最近车辆状态/充电费用统计/续航曲线图），用户照不同文档走看到完全不同推荐。统一为 QUICKSTART 的 5 个。
+
+**15. CurrentChargeView 仪表盘电压单位错用 `kwatt`（千瓦）**：电压 panel 应该用 `volt`（伏特），错单位让 230V 显示成「230 千瓦」。同仪表盘里程表用了非 Grafana 标准单位 `Km`，改 `none` + displayName 标 `(km)`。
+
+### 兼容性
+
+镜像 LABEL 1.6.6 → 1.6.7。仪表盘 JSON 修了 2 处单位错误，**升级用户需要重新拉镜像让新仪表盘 provisioning** 才能看到电压显示修复。
+
+---
+
 ## [v1.6.6] - 2026-05-06
 
 ### 🐛 修复（数据迁移真 bug）

@@ -534,7 +534,7 @@ services:
 docker compose restart teslamate
 ```
 
-> **注意：仅支持 HTTP 代理**，不支持 HTTPS 代理。填写格式为 `http://代理IP:端口`（即使你的代理支持 HTTPS，此处也必须写 `http://`）。填写能访问公网的代理地址（如本地 Clash/V2Ray 的局域网监听地址）。配置后历史行程的地址也会在下次处理时自动补全。
+> **注意：TeslaMate 仅识别 HTTP 类型代理**（HTTP CONNECT 方式），不支持 SOCKS5 代理或仅 HTTPS 隧道型代理。格式为 `http://代理IP:端口`，例如 Clash / V2Ray 默认在 `http://127.0.0.1:7897`。代理会用于反解 OSM Nominatim 的请求（即使最终是去 https://nominatim.openstreetmap.org），所以 scheme 写 `http://` 即可。配置后历史行程的地址也会在下次处理时自动补全。
 
 ---
 
@@ -727,6 +727,8 @@ volumes:
 
 **解决：配置 URL_PATH 环境变量**
 
+> ℹ️ **根路径用户无需配置**（`URL_PATH` 默认值就是 `/`）。仅当你要把 TeslaMate 挂到子路径（如 `https://your-domain/teslamate/`）时才设置。
+
 在 `docker-compose.yml` 的 `teslamate` 服务中添加：
 
 ```yaml
@@ -744,6 +746,12 @@ location /teslamate/ {
     proxy_pass http://localhost:4000/;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
+
+    # ⚠ 关键：TeslaMate 用 Phoenix LiveView，必须显式 upgrade WebSocket
+    # 缺这三行进得去主页但实时车辆状态 / 地图轨迹不更新
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 ```
 
@@ -840,6 +848,51 @@ cd ~/teslamate-chinese  # 进入安装目录
 docker compose pull
 docker compose up -d
 ```
+
+---
+
+### PostgreSQL 大版本升级（如 17 → 18）
+
+⚠️ **不能直接改 `image: postgres:18-trixie` 重启**——PostgreSQL 大版本之间数据文件不兼容，直接换 image 会让 database 容器进入 `database files are incompatible with server` 反复重启循环。**必须按官方流程：dump → 删卷 → 换 image → restore**。
+
+参考：[TeslaMate 官方 upgrading_postgres](https://docs.teslamate.org/docs/maintenance/upgrading_postgres)
+
+```bash
+cd ~/teslamate-chinese
+
+# 1. 先用旧 PG 容器做完整 dump（关键！换镜像前最后机会）
+docker compose exec -T database pg_dump -U teslamate teslamate > pg-pre-upgrade.sql
+
+# 2. 完全停服（包括数据库）
+docker compose down
+
+# 3. 删旧的命名卷（数据文件在这里，PG 大版本不兼容必须删）
+docker volume rm teslamate_teslamate-db
+# ⚠ 这一步会删除整个数据库文件，没有 dump 千万别跑！
+
+# 4. 修改 docker-compose.yml 把 image 改成新版本：
+#    image: postgres:18-trixie  # 或更新版本
+
+# 5. 启动 database 让它用新版本初始化空数据库
+docker compose up -d database
+sleep 30   # 等新 PG 完成首次初始化
+
+# 6. 恢复（按上节「数据库备份与恢复」的恢复流程）
+docker compose stop teslamate 2>/dev/null || true
+docker compose exec -T database psql -U teslamate teslamate <<'EOF'
+DROP SCHEMA public CASCADE;
+DROP SCHEMA private CASCADE;
+CREATE SCHEMA public;
+CREATE EXTENSION cube WITH SCHEMA public;
+CREATE EXTENSION earthdistance WITH SCHEMA public;
+EOF
+docker compose exec -T database psql -U teslamate teslamate < pg-pre-upgrade.sql
+
+# 7. 启动其他服务
+docker compose up -d
+```
+
+> 跳过任一步都会丢数据。**第 1 步 dump 是唯一保险**——dump 没做就跑第 3 步 = 行车记录全丢且无法恢复。
 
 ---
 
@@ -955,21 +1008,38 @@ docker compose restart grafana
 
 ### 数据库备份与恢复
 
-**备份：**
+> ℹ️ 流程跟 [TeslaMate 官方 backup_restore](https://docs.teslamate.org/docs/maintenance/backup_restore) 对齐。**恢复前必须先 `DROP SCHEMA public + private CASCADE` + `CREATE EXTENSION cube + earthdistance`**，不然 Tesla token 解密会失败（被迫重新授权），且新机器上 `pg_restore` 报 `type "cube" does not exist`。详细数据迁移流程见上节「整机迁移」。
+
+**备份**（plain SQL 格式，简单 + 跨版本兼容）：
 ```bash
 cd ~/teslamate-chinese
-docker compose exec database pg_dump -U teslamate teslamate > backup_$(date +%Y%m%d_%H%M).sql
+docker compose exec -T database pg_dump -U teslamate teslamate > backup_$(date +%Y%m%d_%H%M).sql
 ```
 
-**恢复：**
+**恢复**（必须跟官方流程一致）：
 ```bash
-# 停止 TeslaMate（避免写入冲突）
+cd ~/teslamate-chinese
+
+# 1. 完整启动一次（让 teslamate 自动建好 schema 和 extensions）
+docker compose up -d
+sleep 30
+
+# 2. 停 teslamate 防止恢复时写冲突（database 保持运行）
 docker compose stop teslamate
 
-# 恢复数据
+# 3. 清空 schema + 重建 extensions（跟官方 backup_restore 对齐，关键步骤）
+docker compose exec -T database psql -U teslamate teslamate <<'EOF'
+DROP SCHEMA public CASCADE;
+DROP SCHEMA private CASCADE;
+CREATE SCHEMA public;
+CREATE EXTENSION cube WITH SCHEMA public;
+CREATE EXTENSION earthdistance WITH SCHEMA public;
+EOF
+
+# 4. 恢复 SQL 数据
 docker compose exec -T database psql -U teslamate teslamate < backup_20260315_1200.sql
 
-# 重启
+# 5. 启动 teslamate
 docker compose start teslamate
 ```
 
