@@ -12,48 +12,45 @@
 
 仪表盘总数 **43 → 46**。
 
-### 🔍 上游 audit 结论
+### 🐛 回本分析数学逻辑重做（上游 bug 一年多没人发现）
 
-把 jheredianet 列为正式上游（除官方 teslamate-org 外的第二优先级，已在 CLAUDE.md §1 固化）后，spot-check 现有 11 个对应仪表盘 vs 上游 1 年内 commit：
+老公式把「单年折旧率（递减 5pp/年）」误当作「累计残值率」用，第二年起残值反而递增（车越折越值钱）。改成累计折旧率：
 
-- 上游 2025-08-31 「Fix Tracking drives query」：纯 cosmetic（pluginVersion bumps + threshold value:null 清理），不影响功能，**不跟**
-- 上游 2025-09-05 「Fix timezone queries」：把 `date_trunc(p, timezone('UTC', col), '$__timezone')` 改成 `date_trunc(p, timezone('$__timezone', col))`——**实际是 timezone regression**，对 PG 16+ 用户来说会让 TeslaMate 朴素 UTC 列被当本地时区解读偏 8 小时。我们 CLAUDE.md §4 模式 B 的写法更正确，**继续保持，不跟上游这个 commit**
-- 上游 2025-08-05 ChargingCurveStats AND/OR 括号修复：我们 SQL 结构与上游不同（用 AND NOT × 2），**无同源 bug**
+- 第 1 年累计 20% → 第 2 年 35% → 第 3 年 45% → 第 4-N 年封顶 50%
+- 残值现在按预期单调递减，「折旧后车价 + 累计节省」曲线与购车成本红线相交点真实反映回本时间
+
+同时修一组 UX 问题：
+
+- 默认值本地化：购车成本 40000 → 263500 元、同级油费 0.108 → 1 元/km、回本曲线阈值 367000 → 263500
+- 「周期」下拉框、「采样间隔」等英文选项 → 中文（月/年、1小时/2小时、是/否）
+- 帮助文本重写：累计节省公式、列名、「电车每公里运行成本」语义（保养摊薄不含电费）澄清
+
+### 🐛 数据精度 + 时间窗修复（跟齐官方 teslamate-org）
+
+- **timeline.json**：dashboard 链接 timestamp 用 `ROUND` 让 drill-down 窗口过窄丢点 → 改 FLOOR(start) / CEIL(end)（停车段 + 缺失数据段方向相反，因 start 是上一活动的 end）
+- **timeline / MileageStats / ChargingCostsStats**：`convert_km(... ::integer ...)` 转 km→mile 前丢小数（mile 用户每段 trip 偏 0.5 mi）→ 改 `::numeric`
+- **SpeedTemperature**：日期分桶用朴素 UTC 列没做时区转换，中国用户 23:00 行程归错日期 → 内层 `to_char` 加 `AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone'`
+
+### 🐛 单位 / 翻译 / 显示修复
+
+- 12 个仪表盘 displayName `时长(min)` / `时长(分钟)` 统一 → `时长` + `unit: "分钟"`
+- 续航衰减：override regex 跟 SQL 中文 alias 同步（`/Odometer/`→`/里程/`、`/.avg*/`→`/平均/`）；总充电量/总用电量 `unit: kwatth` → `kWh` 字符串避免 MWh 自动换算
+- 速度与温度：2 处 `displayName: "Distance"` 漏译 → 「行驶距离」
+- 回本分析 / 续航衰减：模板变量类型 `interval` → `custom`，加 `text : value` 中文映射
+
+### 🔐 PostgreSQL 18 与官方对齐
+
+官方 teslamate-org 主分支当前默认 `postgres:18-trixie`，本项目同步要求 PG 18：
+
+- `simple-deploy.sh` 默认 PG 18（无变化）
+- `migrate-from-official.sh` 新增 PG 版本探测 + 备份升级流程提示：PG ≤15 直接退出（仪表盘必报错），PG 16/17 警告但允许跳过；失败时打印完整 8 步 `pg_dumpall → 删卷 → 换 image → 恢复` 命令
+- README / QUICKSTART 系统要求段加 PG 18 + 链接 TROUBLESHOOTING「PostgreSQL 大版本升级」章节
 
 ### 📚 文档
 
-- DASHBOARD_MAP.md 加 v1.7.0 移植段
+- DASHBOARD_MAP 加 v1.7.0 移植段 + 「续航衰减（上游移植）vs 续航退化分析（项目原创）」差异说明
 - README / QUICKSTART / TROUBLESHOOTING / DASHBOARD_MAP 仪表盘总数 43 → 46
-
-### 🐛 移植后审计修复（2 路 /full-review）
-
-第一路 audit（翻译保真 + 跨文件一致性）抓出 9 处问题：
-
-- **RangeDegradation** 两处 override regex 失配（`/Odometer/`、`/.avg*/`）：SQL alias 翻成中文后 regex 没同步 → 里程曲线丢右轴 + 移动平均线丢色。修
-- **SpeedTemperature** 5 处 SQL 用朴素 UTC 列做日期分桶（违反 CLAUDE.md §4 模式 A），中国用户 23:00 行程会归错日期。改 `(start_date AT TIME ZONE 'UTC' AT TIME ZONE '$__timezone')::date`
-- **AmortizationTracker** 周期下拉框还显示英文 `month/year`：Grafana custom var 的 `query` 字段是 options 源头，必须用 `text : value` 语法。改后显「月/年」。同款修了 charge-level 三个变量（采样间隔 / 包含移动平均线 / 宽度）
-- **AmortizationTracker** 加 4 个国内默认值 + description 强调 per-km 单位
-- **SpeedTemperature** 漏译残留 `displayName: "Consumtion"`（上游拼写错也跟进了）：删
-- 文档数字 43→46 几处漏改（QUICKSTART / DASHBOARD_MAP / CLAUDE.md）
-- DASHBOARD_MAP 加「续航衰减（上游移植）vs 续航退化分析（项目原创）」差异说明，避免混淆
-
-第二路 audit（跟 teslamate-org 官方上游对齐）抓出 5 处真 bug：
-
-- **timeline.json 9 处 ROUND→FLOOR/CEIL**（官方 commit `5f530c5` 2026-03-10）：dashboard 链接 timestamp 用 `ROUND` 让目标时间窗过窄，丢首末秒数据点。改 7 处 FLOOR(start) / CEIL(end)，保留 charge-details slotlink ±10s buffer 不动
-- **timeline.json + MileageStats.json + ChargingCostsStats.json 7 处 `::INTEGER` cast**（官方 PR #4986 2025-10-04）：`convert_km(... ::integer ...)` 在 km→mile 转换前先丢小数（最多差 0.5 mile/0.8 km）。改 `::numeric`
-- **AmortizationTracker `fuel_price` 默认 8.5** 是 per-liter 单位误用：SQL 实际是 `cum_mileage_km × $fuel_price`（per-km），8.5 元/km 让累计节省曲线夸大约 17 倍。改默认 `1`（合理 per-km，对应油耗 ~12L/100km × 8 元/L 的高油耗 SUV）+ description 强调单位 + 给油价×油耗换算公式
-- **AmortizationTracker `car_cost` 默认 40000** 是欧元残留：改 `263500`（Tesla Model 3 RMB 价）
-- **AmortizationTracker panel 76 threshold 367000** 同欧元残留（9× car_cost 比例）：改 `263500`
-- **AmortizationTracker panel 75 SQL `5.0/12` hardcode**（继承上游 bug）：period=year 时该 `/1`。改成跟 panel 77 一致的 `CASE WHEN '$period' = 'year' THEN 1 ELSE 12 END`
-
-### 🔐 PG 版本要求强制 18（与官方对齐）
-
-官方 teslamate-org 当前主分支已默认 `postgres:18-trixie`。我们跟进：
-
-- **`simple-deploy.sh` 已用 PG 18**（无变化）
-- **`migrate-from-official.sh` 加 PG 版本探测 + 备份升级提示**：检测到 PG ≤15 直接退出（仪表盘必报错），PG 16/17 提示升级但允许跳过，PG 18 通过。失败时打印完整 8 步备份+升级命令（pg_dumpall → 删卷 → 换 image → 恢复）
-- **README / QUICKSTART 系统要求段加 PG 18**：链接 TROUBLESHOOTING「PostgreSQL 大版本升级」章节
-- TROUBLESHOOTING「PG 大版本升级」章节（已有）继续作为参考
+- TROUBLESHOOTING 新增 Grafana 密码恢复章节
 
 ### 兼容性
 
