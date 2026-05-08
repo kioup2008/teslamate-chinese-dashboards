@@ -265,18 +265,32 @@
 
 ### 方法一：一键脚本（推荐 ⭐）
 
-适合**全新部署**的用户。脚本自动装 TeslaMate + PostgreSQL + Grafana 中文版 + Mosquitto，随机生成 ENCRYPTION_KEY 和数据库密码。
+**适合谁**：第一次装 TeslaMate 的用户、想最快看到自己车数据的人。
 
+**装完你看到什么**：
+- TeslaMate `http://你的IP:4000` — 粘贴 Tesla token 后开始记录数据
+- Grafana `http://你的IP:3000` — 46 个中文仪表盘开箱可用（行驶 / 充电 / 电池 / 多车 / 年度报告等）
+- 终端打印 3 个密码（Grafana / 数据库 / 加密 key），抄到密码管理器
+
+**前提**：
+- 一台一直开机的机器（家用 NAS / 云 VPS 1GB+ / 自己电脑都行）
+- 终端：Linux / macOS 自带；Windows 用 WSL2 或 Git Bash
+- Docker 没装也行 — 脚本检测不到会自动装（Linux 主流发行版）
+- Tesla 账号 + 手机装好 [Auth for Tesla App](https://github.com/adriankumpf/tesla_auth/releases)（装完拿 token 用）
+
+**跑**：
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/simple-deploy.sh
 bash simple-deploy.sh
 ```
 
-跑完后看终端输出：
+**装完做什么**：
+1. 浏览器开 `http://你的IP:4000` 粘贴 Tesla access_token + refresh_token 绑车
+2. 等几分钟数据同步（首次拉历史数据稍慢）
+3. 浏览器开 `http://你的IP:3000`，左侧导航看「TeslaMate」分类下所有仪表盘
+4. 国内用户在「足迹地图」/「驾驶记录追踪」顶部下拉切「高德地图」，轨迹会精准贴道路
 
-- TeslaMate: `http://服务器IP:4000`（粘贴 Auth for Tesla App 生成的 token 完成绑定）
-- Grafana:   `http://服务器IP:3000`（admin / **脚本自动生成的强随机密码**，从终端输出抄走）
-- ENCRYPTION_KEY + DATABASE_PASS + GRAFANA_PASS（三条**立刻抄到密码管理器**，丢了未来迁移/进 Grafana 全失败）
+**遇到问题**：先看 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)，常见装完起不来的原因（端口冲突 / Docker 起不来 / Tesla token 拒绝）都在那里。
 
 ### 方法二：替换已有原版 TeslaMate 的 Grafana 镜像
 
