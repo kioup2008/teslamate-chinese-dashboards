@@ -340,6 +340,9 @@ services:
       # 仅在走自建 Fleet API 网关或代理时取消注释（参考 TROUBLESHOOTING.md「公网部署专项」）：
       # - TESLA_API_HOST=https://owner-api.vn.cloud.tesla.cn
       # - TESLA_WSS_HOST=wss://streaming.vn.cloud.tesla.cn
+      # 国内用户强烈建议取消下一行注释 + 填代理地址：nominatim.openstreetmap.org 国内常超时
+      # 会让行程列表起始/结束地址列大量为空。详见 TROUBLESHOOTING.md#nominatim-proxy
+      # - NOMINATIM_PROXY=http://你的代理IP:7890
       - TZ=Asia/Shanghai
 
   database:
