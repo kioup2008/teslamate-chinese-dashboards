@@ -512,7 +512,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  COALESCE(c.name, CONCAT('VIN ', RIGHT(c.vin, 6))) AS \"车辆\",\n  ROUND(COALESCE(SUM(cp.cost), 0)::numeric, 2) AS \"充电总费用(元)\"\nFROM cars c\nLEFT JOIN charging_processes cp ON cp.car_id = c.id AND cp.cost IS NOT NULL AND $__timeFilter(cp.start_date)\nGROUP BY c.id, c.name, c.vin\nORDER BY \"充电总费用(元)\" DESC;",
+          "rawSql": "SELECT\n  COALESCE(c.name, CONCAT('VIN ', RIGHT(c.vin, 6))) AS \"车辆\",\n  ROUND(COALESCE(SUM(effective_cost(cp.id, cp.cost)), 0)::numeric, 2) AS \"充电总费用(元)\"\nFROM cars c\nLEFT JOIN charging_processes cp ON cp.car_id = c.id AND effective_cost(cp.id, cp.cost) IS NOT NULL AND $__timeFilter(cp.start_date)\nGROUP BY c.id, c.name, c.vin\nORDER BY \"充电总费用(元)\" DESC;",
           "refId": "A",
           "sql": {
             "columns": [

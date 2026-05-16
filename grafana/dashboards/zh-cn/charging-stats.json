@@ -2920,7 +2920,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n\tCOALESCE(geofence.name, CONCAT_WS(', ', COALESCE(address.name, CONCAT_WS(' ', address.road, address.house_number)), address.city)) AS location,\n\tsum(cost) as cost\nFROM charging_processes c\n\tLEFT JOIN addresses address ON c.address_id = address.id\n\tLEFT JOIN geofences geofence ON geofence_id = geofence.id\nWHERE\n  $__timeFilter(end_date) AND\n\tcar_id = $car_id AND\n\tduration_min >= $min_duration AND\n\tCOST IS NOT NULL\nGROUP BY\n\t1\nORDER BY\n\t2 DESC NULLS LAST\nLIMIT 17;",
+          "rawSql": "SELECT\n\tCOALESCE(geofence.name, CONCAT_WS(', ', COALESCE(address.name, CONCAT_WS(' ', address.road, address.house_number)), address.city)) AS location,\n\tsum(effective_cost(c.id, c.cost)) as cost\nFROM charging_processes c\n\tLEFT JOIN addresses address ON c.address_id = address.id\n\tLEFT JOIN geofences geofence ON geofence_id = geofence.id\nWHERE\n  $__timeFilter(end_date) AND\n\tcar_id = $car_id AND\n\tduration_min >= $min_duration AND effective_cost(c.id, c.cost) IS NOT NULL\nGROUP BY\n\t1\nORDER BY\n\t2 DESC NULLS LAST\nLIMIT 17;",
           "refId": "A",
           "sql": {
             "columns": [
