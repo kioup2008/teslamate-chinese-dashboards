@@ -123,33 +123,49 @@ setup_backup() {
     chmod +x "$INSTALL_DIR/backup.sh"
     echo "  ✓ 备份脚本已就位：$INSTALL_DIR/backup.sh"
 
-    local BK_DIR CRON_LINE want
+    local BK_DIR CRON_LINE choice inc_key KEY_ENV
     BK_DIR="$INSTALL_DIR/backups"
-    CRON_LINE="0 3 * * * BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh >> $BK_DIR/cron.log 2>&1"
+    inc_key=1   # 默认含密钥（备份能独立恢复）
 
     # 已设过定时（通用 Linux）→ 不再追问，避免每次升级都问
     if [ "$PLATFORM" != "synology" ] && command -v crontab >/dev/null 2>&1 \
         && crontab -l 2>/dev/null | grep -Fq "$INSTALL_DIR/backup.sh"; then
         echo "  ✓ 已有每日定时备份任务（crontab -l 可查），脚本已更新到最新"
+        echo "    （想改成不含密钥：crontab -e 在该行命令最前面加 INCLUDE_CONFIG=0）"
         return 0
     fi
 
-    # 2. 交互：是否设置每日自动备份
+    # 2. 交互：是否设置每日自动备份 + 备份是否含密钥（一个菜单三选一，免去手敲 env）
     if [ "${AUTO_BACKUP:-}" = "1" ]; then
-        want=Y
+        # 非交互授权：默认含密钥；想不含则同时传 INCLUDE_CONFIG=0
+        [ "${INCLUDE_CONFIG:-1}" = "0" ] && inc_key=0
+        choice="set"
     elif [ -t 0 ]; then
-        read -r -p "  设置每日 03:00 自动备份？[Y/n] " want || want=""
-        want=${want:-Y}
+        echo "  设置每日 03:00 自动备份？"
+        echo "    1) 是，备份含密钥   —— 推荐：换机 / 重装也能用这一份备份独立恢复，不用记那串复杂密钥"
+        echo "    2) 是，备份不含密钥 —— 更私密，但你必须自己另存 ENCRYPTION_KEY，否则恢复后 token 解不开"
+        echo "    3) 否，暂不设置"
+        read -r -p "  请选择 [1/2/3]（默认 1）：" choice || choice=""
+        case "${choice:-1}" in
+            2) inc_key=0; choice="set" ;;
+            3) choice="skip" ;;
+            *) inc_key=1; choice="set" ;;
+        esac
     else
         # 非交互（curl|bash）：不擅自设定时，给指引
-        echo "  ℹ 非交互模式跳过定时设置。启用：AUTO_BACKUP=1 重跑本脚本，或见 TROUBLESHOOTING.md#db-backup"
+        echo "  ℹ 非交互模式跳过定时设置。启用：AUTO_BACKUP=1 重跑本脚本（默认含密钥，不含再加 INCLUDE_CONFIG=0），或见 TROUBLESHOOTING.md#db-backup"
         return 0
     fi
 
-    if [[ ! "$want" =~ ^[Yy] ]]; then
+    if [ "$choice" = "skip" ]; then
         echo "  已跳过自动备份。以后想设见 TROUBLESHOOTING.md#db-backup"
         return 0
     fi
+
+    # 不含密钥 → 命令最前面加 INCLUDE_CONFIG=0
+    KEY_ENV=""
+    [ "$inc_key" = "0" ] && KEY_ENV="INCLUDE_CONFIG=0 "
+    CRON_LINE="0 3 * * * ${KEY_ENV}BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh >> $BK_DIR/cron.log 2>&1"
 
     mkdir -p "$BK_DIR"
 
@@ -158,17 +174,21 @@ setup_backup() {
         echo "  📋 群晖请用 DSM 任务计划（DSM 不认普通 crontab）："
         echo "     控制面板 ▸ 任务计划 ▸ 新增 ▸ 计划的任务 ▸ 用户定义的脚本"
         echo "     用户 root，每天 03:00，运行命令（整行复制）："
-        echo "       BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh"
+        echo "       ${KEY_ENV}BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh"
     elif ! command -v crontab >/dev/null 2>&1; then
         echo "  ⚠ 系统没有 crontab，无法自动设置。手动定时见 TROUBLESHOOTING.md#db-backup"
-        echo "    备份命令：BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh"
+        echo "    备份命令：${KEY_ENV}BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh"
     else
         ( crontab -l 2>/dev/null; echo "$CRON_LINE" ) | crontab -
         echo "  ✓ 已设每日 03:00 自动备份 → $BK_DIR（保留 7 份）"
         echo "    查看：crontab -l    日志：$BK_DIR/cron.log"
     fi
-    echo "  ℹ 备份会连 docker-compose.yml（含密钥）一起存 → 这份备份能独立恢复；"
-    echo "    请保证备份目录私密、别公开分享（不想含密钥：备份命令加 INCLUDE_CONFIG=0）"
+
+    if [ "$inc_key" = "1" ]; then
+        echo "  ℹ 备份含 docker-compose.yml（密钥）→ 能独立恢复；请保证备份目录私密、别公开分享"
+    else
+        echo "  ⚠ 你选了「不含密钥」→ 请务必自己另存 ENCRYPTION_KEY（在 $INSTALL_DIR/docker-compose.yml），否则恢复后 token 解不开"
+    fi
 }
 
 # 检查 Docker 和 Docker Compose

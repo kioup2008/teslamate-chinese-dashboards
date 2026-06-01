@@ -1308,7 +1308,7 @@ docker compose start teslamate
 
 **最省事：一键安装用户重跑安装脚本**
 
-`simple-deploy.sh` 会自动把 `backup.sh` 下载到 `~/teslamate-chinese/backup.sh`，并问你「设置每日 03:00 自动备份？」——通用 Linux 选 Y 就直接帮你写好 crontab；群晖会打印 DSM 任务计划步骤。已经装过的，重跑一次脚本（走升级模式）同样会问。非交互（`curl|bash`）模式想直接设：`AUTO_BACKUP=1` 重跑。
+`simple-deploy.sh` 会自动把 `backup.sh` 下载到 `~/teslamate-chinese/backup.sh`，并让你三选一：**① 是，备份含密钥（推荐，能独立恢复）/ ② 是，备份不含密钥（需自己留底密钥）/ ③ 否**——选 ① / ② 后，通用 Linux 直接帮你写好 crontab、群晖打印 DSM 任务计划步骤。已经装过的，重跑一次脚本（走升级模式）同样会问。非交互（`curl|bash`）模式想直接设：`AUTO_BACKUP=1` 重跑（默认含密钥，不含再加 `INCLUDE_CONFIG=0`）。
 
 **手动用脚本（git clone 用户 / 想自己控制）**
 

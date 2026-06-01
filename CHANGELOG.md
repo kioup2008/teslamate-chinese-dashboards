@@ -8,6 +8,7 @@
 
 - **`scripts/backup.sh` 默认连 `docker-compose.yml`（含 `ENCRYPTION_KEY`）一起快照**（存成 `teslamate-compose-SECRET.yml`，只留最新一份），让每份备份都能**独立恢复**，用户不必再手抄那串复杂的随机密钥；
 - **隐私警告 + 逃生口**：含密钥意味着拿到备份的人能解你的 Tesla token（token 能控车），脚本会提醒「备份目录务必私密、别公开分享」；安全顾虑大的用户可 `INCLUDE_CONFIG=0` 关闭（关了则需自己单独留底密钥）；
+- **一键脚本给可选菜单**（不用手敲 env）：设置自动备份时三选一 ——「① 含密钥(推荐) / ② 不含密钥 / ③ 否」，选 ② 自动在定时命令里加 `INCLUDE_CONFIG=0`，并提醒你单独留底密钥；
 - 自动查找 `docker-compose.yml`（`COMPOSE_FILE` 可显式指定），找不到则降级为纯数据库备份并提示；
 - **一键脚本 + 文档对齐**：`simple-deploy.sh` 装完凭据区加一句「这三项也都在 `docker-compose.yml` 里，没抄到可找回」（消除恐慌）；设置自动备份时说明备份已含密钥；`TROUBLESHOOTING.md#db-backup` 新增「关于密钥与隐私」+ 恢复时先把 `teslamate-compose-SECRET.yml` 改回 `docker-compose.yml`；README 同步。
 
