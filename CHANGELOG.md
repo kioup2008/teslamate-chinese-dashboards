@@ -1,5 +1,30 @@
 # 更新日志
 
+## [v1.7.7] - 2026-06-01
+
+### 🆕 新增 `scripts/backup.sh` —— 安全的数据库定期备份脚本
+
+之前文档只给了一段 `pg_dump` 片段让用户自己拼，且只面向群晖 Hyper Backup，没有真正可挂定时任务的脚本，也没覆盖通用 crontab 用户。issue #25 又一次暴露大陆用户对「数据别丢」的刚需（行车历史不可逆）。
+
+**新增 `scripts/backup.sh`**，安全第一：
+
+- **失败绝不骗你**：`pg_dump` 报错 / 导出文件异常小 / `pg_restore -l` 校验归档损坏 —— 任一不通过立即中止，**绝不产出空文件、绝不删除任何已有备份**；
+- **只在本轮成功后**才清理超出 `KEEP` 份的旧备份（count-based，比 `find -mtime` 更稳，备份再稀也不会误删最后一份）；
+- 任何失败 `exit 1`（cron / 群晖任务计划据此报警），全程写日志到 `$BACKUP_DIR/backup.log`；
+- 复用 `lib/detect-containers.sh` 自动探测容器（与 `upgrade.sh` 同源），可用 `DB_CONTAINER` 覆盖；env 可配 `BACKUP_DIR` / `KEEP`；
+- 兼容 bash 3.2（不用 `mapfile`），只写备份、从不碰数据库，回滚天然安全。
+
+**文档同步：**
+
+1. `TROUBLESHOOTING.md`「定期自动备份数据库」（ASCII 锚 `#db-backup`）改为脚本驱动，并拆「**群晖 DSM** / **通用 crontab**」两个明确分支；
+2. 强提醒 **ENCRYPTION_KEY 必须单独留底**（脚本不备份它，丢了恢复后 token 也解不开）；
+3. 明确恢复要用 `pg_restore`（`-Fc` 格式），**不要**用 `psql <`（plain SQL 才用），并建议做完首份备份立刻演练一次恢复；
+4. `README.md` 升级前备份段、`simple-deploy.sh` 部署收尾提示各加一行指引。
+
+> 测试：本地以桩 `docker` 验证成功 / `pg_dump` 失败 / 归档损坏 / 文件过小四条路径；真机（群晖 NAS）跑通 322M 真实库导出 + `pg_restore -l` 校验 15 张表数据 + 错误容器名中止不删旧备份。`shellcheck` 通过。
+
+> 镜像内容无变化（`scripts/` 不进 Docker 镜像，是 git 仓库脚本）。
+
 ## [v1.7.6] - 2026-05-24
 
 ### 🐛 同步上游修复：无 Geofence 时充电/行程仪表盘无法加载

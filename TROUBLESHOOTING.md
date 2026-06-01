@@ -1295,22 +1295,48 @@ docker compose start teslamate
 
 > **如果你已经按旧版流程恢复过 + token 解密失败被迫重授权过**：那是这个 bug 的症状。现在用新流程不会再遇到。如果还有 4S 店保养记录或其他业务数据是从备份恢复来的，旧版流程不会丢，仅 token 那一项受影响。
 
-### 单纯备份数据库（定期跑）
+<a id="db-backup"></a>
 
-如果只想用 Hyper Backup（群晖备份套件）拉一份数据库快照（不迁移），加到 NAS 任务计划：
+### 定期自动备份数据库
+
+只想定期留一份数据库快照（不迁移）。仓库自带 **`scripts/backup.sh`**，安全第一：
+
+- 导出失败（`pg_dump` 报错 / 文件异常小 / 归档损坏）→ **立即中止，绝不产出空文件、绝不删除任何已有备份**；
+- 只有本轮确认成功，才清理超出保留份数的旧备份；
+- 任何失败 `exit 1`（cron / 任务计划能据此报警），全程写日志到 `$BACKUP_DIR/backup.log`。
+
+**第一步：先手动验证能跑通**（在你 clone 的仓库目录里）：
 
 ```bash
-docker exec teslamate-database-1 \
-  pg_dump -U teslamate -d teslamate -Fc -f /tmp/teslamate.dump && \
-docker cp teslamate-database-1:/tmp/teslamate.dump \
-  /volume1/backup/teslamate-$(date +%Y%m%d).dump
+BACKUP_DIR=/volume1/backup KEEP=7 bash scripts/backup.sh
 ```
 
-每周保留 4 份：
+成功后会在 `BACKUP_DIR` 生成 `teslamate-YYYYmmdd_HHMM.dump`（`-Fc` 压缩格式），并自动只保留最近 `KEEP` 份。可配环境变量：`BACKUP_DIR`（输出目录，默认 `./backups`）/ `KEEP`（保留份数，默认 `4`）/ `DB_CONTAINER`（容器名，留空自动探测）。
+
+**第二步：挂到定时任务，按你的环境二选一：**
+
+**A. 群晖 DSM 用户**
+
+控制面板 ▸ 任务计划 ▸ 新增 ▸ 计划的任务 ▸ 用户定义的脚本：
+- 用户账号：`root`（需要能跑 docker）
+- 计划：例如「每天 03:00」
+- 任务设置 ▸ 运行命令，填（把路径换成你仓库的实际位置）：
 
 ```bash
-find /volume1/backup/teslamate-*.dump -mtime +28 -delete
+BACKUP_DIR=/volume1/backup KEEP=7 bash /volume1/docker/teslamate-chinese/scripts/backup.sh
 ```
+
+**B. 通用 Linux / Docker 用户（crontab）**
+
+```bash
+crontab -e
+# 加一行：每天 03:00 备份、保留 7 份（路径换成你的实际仓库 + 备份目录）
+0 3 * * *  BACKUP_DIR=/your/backup KEEP=7 bash /path/to/teslamate-chinese/scripts/backup.sh
+```
+
+> ⚠️ **ENCRYPTION_KEY 一定要单独留底**：本脚本只备份数据库。`ENCRYPTION_KEY`（在 `docker-compose.yml` / `.env`）请另存到密码管理器——丢了它，即使数据库恢复成功，Tesla token 也永远解密不出来，必须重新授权。
+
+> 🔁 **恢复 + 演练**：本脚本产出 `-Fc` 格式，恢复要用 `pg_restore`（见上面「整机迁移」恢复步骤 5–6：先 `DROP SCHEMA` + 重建 extensions，再 `pg_restore`），**不要**用 `psql < xxx.sql`（那是 plain SQL 格式的恢复法，对 `.dump` 不适用）。强烈建议做完第一次备份后**立刻演练一次恢复到测试库**——没验证过能恢复的备份，不算备份。
 
 ---
 
@@ -1318,7 +1344,7 @@ find /volume1/backup/teslamate-*.dump -mtime +28 -delete
 
 **适用场景：** 群晖 / 威联通用户想把 Postgres 数据库 / Grafana 数据放到能直接通过 NAS 文件浏览器看见的路径，方便用 Hyper Backup / Snapshot Replication 备份。
 
-> ⚠️ **这是有损操作（涉及停服 + 文件搬运），新装直接用 bind mount 比迁移简单**。已经在跑的用户，**先做完整数据库备份再开始**（见上节「单纯备份数据库」）。
+> ⚠️ **这是有损操作（涉及停服 + 文件搬运），新装直接用 bind mount 比迁移简单**。已经在跑的用户，**先做完整数据库备份再开始**（见上节「定期自动备份数据库」）。
 
 **步骤：**
 

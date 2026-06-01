@@ -127,6 +127,8 @@
 > ```
 > 详见 [TeslaMate 官方 backup_restore](https://docs.teslamate.org/docs/maintenance/backup_restore) + [我们的 TROUBLESHOOTING「整机迁移」](TROUBLESHOOTING.md)。
 >
+> 想**定期自动备份**（群晖任务计划 / crontab）？仓库自带 `scripts/backup.sh`（导出失败自动中止、绝不删除已有备份、自动保留最近 N 份），配置见 [TROUBLESHOOTING.md「定期自动备份数据库」](TROUBLESHOOTING.md#db-backup)。
+>
 > ### 升级出问题？完全可逆
 >
 > TeslaMate 任何表都没动，分时电价数据全在我们新建的旁路表。详见 [TROUBLESHOOTING.md「v1.5.0 分时电价升级排错 / 回滚」](TROUBLESHOOTING.md#tou-rollback) | [Telegram 交流群](https://t.me/+BeOASgmvE_IyNzNl)
