@@ -15,6 +15,8 @@ export COMPOSE_PROJECT_NAME=teslamate
 # 详见 README「SQL 远程拉取的信任模型」
 SQL_REF="${SQL_REF:-main}"
 SQL_BASE="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${SQL_REF}/sql"
+# 仓库根 raw 基址（拉 scripts/backup.sh 等非 SQL 文件用）
+REPO_BASE="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${SQL_REF}"
 
 # 端口配置（支持环境变量覆盖，端口冲突时用：TM_PORT=14000 GF_PORT=13000 bash simple-deploy.sh）
 TM_PORT="${TM_PORT:-4000}"
@@ -101,6 +103,71 @@ install_docker_linux() {
     fi
     echo "✅ Docker 已就绪"
     echo ""
+}
+
+# ============================================================
+# 备份：把 backup.sh 拉到 $INSTALL_DIR，并（可选）设置每日定时备份。
+# fresh-install 和 upgrade 两条路径都会调用。
+# 设计约束：一键用户不 clone 仓库 → 本地没有 scripts/backup.sh，必须 curl 下来；
+#          群晖 DSM 不认普通 crontab（程序化设置不持久）→ 改打印 DSM 任务计划步骤。
+# ============================================================
+setup_backup() {
+    echo ""
+    echo "💾 定期备份数据库（行车历史丢了不可逆，强烈建议）"
+
+    # 1. 必修：拉/刷新备份脚本到本地（单文件即可跑，内置容器探测兜底）
+    if ! curl -fsSL "$REPO_BASE/scripts/backup.sh" -o "$INSTALL_DIR/backup.sh" 2>/dev/null; then
+        echo "  ⚠ 备份脚本下载失败。手动拉：curl -fsSL $REPO_BASE/scripts/backup.sh -o $INSTALL_DIR/backup.sh"
+        return 0
+    fi
+    chmod +x "$INSTALL_DIR/backup.sh"
+    echo "  ✓ 备份脚本已就位：$INSTALL_DIR/backup.sh"
+
+    local BK_DIR CRON_LINE want
+    BK_DIR="$INSTALL_DIR/backups"
+    CRON_LINE="0 3 * * * BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh >> $BK_DIR/cron.log 2>&1"
+
+    # 已设过定时（通用 Linux）→ 不再追问，避免每次升级都问
+    if [ "$PLATFORM" != "synology" ] && command -v crontab >/dev/null 2>&1 \
+        && crontab -l 2>/dev/null | grep -Fq "$INSTALL_DIR/backup.sh"; then
+        echo "  ✓ 已有每日定时备份任务（crontab -l 可查），脚本已更新到最新"
+        return 0
+    fi
+
+    # 2. 交互：是否设置每日自动备份
+    if [ "${AUTO_BACKUP:-}" = "1" ]; then
+        want=Y
+    elif [ -t 0 ]; then
+        read -r -p "  设置每日 03:00 自动备份？[Y/n] " want || want=""
+        want=${want:-Y}
+    else
+        # 非交互（curl|bash）：不擅自设定时，给指引
+        echo "  ℹ 非交互模式跳过定时设置。启用：AUTO_BACKUP=1 重跑本脚本，或见 TROUBLESHOOTING.md#db-backup"
+        return 0
+    fi
+
+    if [[ ! "$want" =~ ^[Yy] ]]; then
+        echo "  已跳过自动备份。以后想设见 TROUBLESHOOTING.md#db-backup"
+        return 0
+    fi
+
+    mkdir -p "$BK_DIR"
+
+    if [ "$PLATFORM" = "synology" ]; then
+        # 群晖：程序化写 crontab 不持久，改打印 DSM 任务计划步骤
+        echo "  📋 群晖请用 DSM 任务计划（DSM 不认普通 crontab）："
+        echo "     控制面板 ▸ 任务计划 ▸ 新增 ▸ 计划的任务 ▸ 用户定义的脚本"
+        echo "     用户 root，每天 03:00，运行命令（整行复制）："
+        echo "       BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh"
+    elif ! command -v crontab >/dev/null 2>&1; then
+        echo "  ⚠ 系统没有 crontab，无法自动设置。手动定时见 TROUBLESHOOTING.md#db-backup"
+        echo "    备份命令：BACKUP_DIR=$BK_DIR KEEP=7 bash $INSTALL_DIR/backup.sh"
+    else
+        ( crontab -l 2>/dev/null; echo "$CRON_LINE" ) | crontab -
+        echo "  ✓ 已设每日 03:00 自动备份 → $BK_DIR（保留 7 份）"
+        echo "    查看：crontab -l    日志：$BK_DIR/cron.log"
+    fi
+    echo "  ⚠ ENCRYPTION_KEY 仍需单独留底（脚本不备份它），否则恢复后 token 解不开"
 }
 
 # 检查 Docker 和 Docker Compose
@@ -256,6 +323,7 @@ if [ -f "$INSTALL_DIR/docker-compose.yml" ]; then
     echo "下一步: 浏览器 Ctrl+Shift+R 强刷，看「地图源」下拉框是否就绪"
     echo ""
     echo "📚 完整发版说明: https://github.com/wjsall/teslamate-chinese-dashboards/releases/latest"
+    setup_backup
     exit 0
 fi
 
@@ -538,10 +606,7 @@ echo "  4. 几分钟后访问 Grafana 查看中文 Dashboard"
 echo "  5. 打开任一含地图仪表盘（足迹地图/驾驶记录追踪等），顶部「地图源」"
 echo "     下拉框试试切换到「高德地图」/「谷歌卫星」"
 echo ""
-echo "💾 定期备份（强烈建议）："
-echo "  行车历史丢了不可逆。仓库自带 scripts/backup.sh（导出失败自动中止、绝不删旧备份、"
-echo "  自动保留最近 N 份），挂到群晖任务计划 / crontab 即可定时备份。"
-echo "  配置见 TROUBLESHOOTING.md#db-backup"
+setup_backup
 echo ""
 echo "📚 相关文档（在线）："
 echo "  https://github.com/wjsall/teslamate-chinese-dashboards"

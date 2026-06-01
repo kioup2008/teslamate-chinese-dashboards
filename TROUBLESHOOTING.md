@@ -1299,39 +1299,52 @@ docker compose start teslamate
 
 ### 定期自动备份数据库
 
-只想定期留一份数据库快照（不迁移）。仓库自带 **`scripts/backup.sh`**，安全第一：
+只想定期留一份数据库快照（不迁移）。用 **`backup.sh`**，安全第一：
 
 - 导出失败（`pg_dump` 报错 / 文件异常小 / 归档损坏）→ **立即中止，绝不产出空文件、绝不删除任何已有备份**；
 - 只有本轮确认成功，才清理超出保留份数的旧备份；
 - 任何失败 `exit 1`（cron / 任务计划能据此报警），全程写日志到 `$BACKUP_DIR/backup.log`。
 
-**第一步：先手动验证能跑通**（在你 clone 的仓库目录里）：
+**最省事：一键安装用户重跑安装脚本**
+
+`simple-deploy.sh` 会自动把 `backup.sh` 下载到 `~/teslamate-chinese/backup.sh`，并问你「设置每日 03:00 自动备份？」——通用 Linux 选 Y 就直接帮你写好 crontab；群晖会打印 DSM 任务计划步骤。已经装过的，重跑一次脚本（走升级模式）同样会问。非交互（`curl|bash`）模式想直接设：`AUTO_BACKUP=1` 重跑。
+
+**手动用脚本（git clone 用户 / 想自己控制）**
+
+脚本位置：`git clone` 用户在仓库 `scripts/backup.sh`；一键安装用户在 `~/teslamate-chinese/backup.sh`；都没有就手动拉（单文件即可跑，内置容器探测兜底）：
 
 ```bash
-BACKUP_DIR=/volume1/backup KEEP=7 bash scripts/backup.sh
+curl -fsSL https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/scripts/backup.sh \
+  -o ~/teslamate-chinese/backup.sh
 ```
 
-成功后会在 `BACKUP_DIR` 生成 `teslamate-YYYYmmdd_HHMM.dump`（`-Fc` 压缩格式），并自动只保留最近 `KEEP` 份。可配环境变量：`BACKUP_DIR`（输出目录，默认 `./backups`）/ `KEEP`（保留份数，默认 `4`）/ `DB_CONTAINER`（容器名，留空自动探测）。
+先手动验证能跑通（路径换成你脚本的实际位置）：
 
-**第二步：挂到定时任务，按你的环境二选一：**
+```bash
+BACKUP_DIR=~/teslamate-chinese/backups KEEP=7 bash ~/teslamate-chinese/backup.sh
+```
 
-**A. 群晖 DSM 用户**
+成功后会在 `BACKUP_DIR` 生成 `teslamate-YYYYmmdd_HHMM.dump`（`-Fc` 压缩格式），并自动只保留最近 `KEEP` 份。可配环境变量：`BACKUP_DIR`（默认 `./backups`）/ `KEEP`（默认 `4`）/ `DB_CONTAINER`（留空自动探测）。
+
+跑通后挂到定时任务，按环境二选一：
+
+**A. 群晖 DSM**
 
 控制面板 ▸ 任务计划 ▸ 新增 ▸ 计划的任务 ▸ 用户定义的脚本：
 - 用户账号：`root`（需要能跑 docker）
 - 计划：例如「每天 03:00」
-- 任务设置 ▸ 运行命令，填（把路径换成你仓库的实际位置）：
+- 任务设置 ▸ 运行命令（把路径换成你脚本的实际位置，用绝对路径）：
 
 ```bash
-BACKUP_DIR=/volume1/backup KEEP=7 bash /volume1/docker/teslamate-chinese/scripts/backup.sh
+BACKUP_DIR=/volume1/backup KEEP=7 bash /root/teslamate-chinese/backup.sh
 ```
 
-**B. 通用 Linux / Docker 用户（crontab）**
+**B. 通用 Linux / Docker（crontab）**
 
 ```bash
 crontab -e
-# 加一行：每天 03:00 备份、保留 7 份（路径换成你的实际仓库 + 备份目录）
-0 3 * * *  BACKUP_DIR=/your/backup KEEP=7 bash /path/to/teslamate-chinese/scripts/backup.sh
+# 加一行：每天 03:00 备份、保留 7 份（用绝对路径，~ 在 crontab 里不展开）
+0 3 * * *  BACKUP_DIR=$HOME/teslamate-chinese/backups KEEP=7 bash $HOME/teslamate-chinese/backup.sh >> $HOME/teslamate-chinese/backups/cron.log 2>&1
 ```
 
 > ⚠️ **ENCRYPTION_KEY 一定要单独留底**：本脚本只备份数据库。`ENCRYPTION_KEY`（在 `docker-compose.yml` / `.env`）请另存到密码管理器——丢了它，即使数据库恢复成功，Tesla token 也永远解密不出来，必须重新授权。

@@ -44,12 +44,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 log() { printf '%s  %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1"; }
 die() { log "❌ $1"; exit 1; }
 
-# ---- 容器探测：复用 lib/detect-containers.sh（与 upgrade.sh 同源）----
+# ---- 容器探测 ----
+# git clone 场景：复用 lib/detect-containers.sh（与 upgrade.sh 同源，含 compose-aware 探测）。
+# 单文件场景（一键安装 curl 下来的 backup.sh，没有 lib/）：内联同款 grep 探测。
 if [ -z "$DB_CONTAINER" ]; then
     if [ -f "$SCRIPT_DIR/lib/detect-containers.sh" ]; then
         # shellcheck source=lib/detect-containers.sh
         source "$SCRIPT_DIR/lib/detect-containers.sh"
         DB_CONTAINER="$(detect_db_container || true)"
+    else
+        # 注意：与 lib/detect-containers.sh 的 grep 分支保持一致
+        DB_CONTAINER="$(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE 'teslamate.*database|teslamate.*postgres' | head -1)"
+        [ -z "$DB_CONTAINER" ] && DB_CONTAINER="$(docker ps --format '{{.Names}}' 2>/dev/null | grep -iE '^database$|^postgres$' | head -1)"
     fi
 fi
 [ -z "$DB_CONTAINER" ] && die "找不到 PostgreSQL 容器。请确认 TeslaMate 在运行，或用 DB_CONTAINER=容器名 显式指定。"

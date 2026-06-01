@@ -1,5 +1,20 @@
 # 更新日志
 
+## [v1.7.8] - 2026-06-01
+
+### 🐛 修复 + 🆕 一键脚本集成备份：之前的备份提示对一键用户是假的
+
+v1.7.7 的备份提示和文档都写「仓库自带 `scripts/backup.sh`」，但一键安装（`simple-deploy.sh` / `curl|bash`）**根本不 `git clone` 仓库**（只 `cat` 出 docker-compose.yml + 按需 curl SQL），所以一键用户机器上压根没有这个脚本 —— 提示指向了一个不存在的文件。本版修正：
+
+- **`simple-deploy.sh` 新增 `setup_backup()`**，fresh-install 与 upgrade 两条路径都调用：
+  1. **必修**：`curl` 把 `backup.sh` 拉到 `~/teslamate-chinese/backup.sh`（一键用户终于真有这个脚本了）；
+  2. **交互提问**「设置每日 03:00 自动备份？[Y/n]」—— 通用 Linux 选 Y 直接幂等写入 crontab（已存在不重复加、升级时不再追问）；**群晖 DSM** 因不认普通 crontab 改打印任务计划步骤；非交互（`curl|bash`）模式跳过，提示 `AUTO_BACKUP=1` 重跑可启用；
+  3. 沿用脚本原有安全保证 + 提醒 ENCRYPTION_KEY 单独留底。
+- **`scripts/backup.sh` 改为单文件自包含**：没有 `lib/detect-containers.sh` 时（一键 curl 下来的单文件）内联同款容器探测兜底，`git clone` 场景仍优先复用共享 lib。
+- **文档对齐**：`TROUBLESHOOTING.md#db-backup` 区分「一键用户重跑脚本最省事 / git clone 用户用 `scripts/backup.sh` / 手动 curl 单文件」三种来源，路径改为真实安装路径（`~/teslamate-chinese/backup.sh`），crontab 示例改用 `$HOME`（`~` 在 crontab 不展开）；README 升级备份段同步。
+
+> 经验：加新依赖必须枚举所有安装入口（一键脚本 fresh + upgrade / git clone / 手动）逐一打补丁——v1.7.7 只覆盖了 clone 路径就发了。
+
 ## [v1.7.7] - 2026-06-01
 
 ### 🆕 新增 `scripts/backup.sh` —— 安全的数据库定期备份脚本
