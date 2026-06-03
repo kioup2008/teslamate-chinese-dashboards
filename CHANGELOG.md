@@ -8,38 +8,24 @@
 
 - 谷 23:00–7:00 `0.43`；平 7:00–17:00 `0.58`；峰 17:00–20:00 + 22:00–23:00 `0.68`；尖 20:00–22:00 `0.78`（元/度，全年统一，无季节性尖峰）。
 
-三处同步：`apply_city_template()` + `list_city_templates()`（`sql/install-tou.sql`）+ `tou-config.json` 下拉。**已在 NAS 实测**：`list_city_templates()` 含武汉、`apply_city_template('wuhan')` 事务回滚测产出 5 行且电价逐项吻合、24h 覆盖无缝无重叠；电价数值交叉核实过（武汉市政府门户 + 国网湖北）。— PR #28，Closes #26
+电价数值已对照官方来源核实（武汉市政府门户 + 国网湖北）。— PR #28，Closes #26
 
-### 🔧 Dockerfile 注释修正 + Grafana 13.0.1 兼容确认
+### 🆕 备份可独立恢复：连密钥一起备，不怕「备份了却恢复不了」
 
-`Dockerfile` 注释原写「锁定版本」，但实际是 `FROM teslamate/grafana:latest`（跟随上游、不锁定），改为准确描述并把 `LABEL version` 补到当前版本。借此在 NAS 隔离环境用 **Grafana 13.0.1** 实测：45+3 个仪表盘全部 provision 成功、零面板类型/Angular/schema 报错，`volkovlabs-form-panel 6.3.2` 也正常装载 —— 上游将来发 G13 基础镜像时可平滑跟上。
+`scripts/backup.sh` 现在**默认连 `docker-compose.yml`（含 `ENCRYPTION_KEY`）一起快照**（`teslamate-compose-SECRET.yml`，只留最新一份），单凭一份备份就能完整恢复，不必再手抄那串随机密钥。
 
-> **升级看到武汉选项**：重跑 `upgrade.sh` / 一键脚本补装 SQL + `docker compose pull` 拉新镜像。本版还包含下方备份相关改进（一键集成、默认含密钥可独立恢复、三选一菜单）。
+- ⚠️ **隐私提醒**：含密钥意味着拿到这份备份的人能解你的 Tesla token —— 备份目录请保持私密、别公开分享；不想含密钥可设 `INCLUDE_CONFIG=0`（那就得自己另存密钥）。
+- 备份文件与数据库 dump 均设为 `600`（仅本人可读）。
 
-### 🆕 备份默认自洽：连密钥一起备，避免「备份了却恢复不了」
+### 🆕 一键安装集成自动备份
 
-之前 `backup.sh` 故意不备份 `ENCRYPTION_KEY`，导致一个隐蔽的坑：用户辛苦做了每日备份，真出事（磁盘挂 / 重装）把 `docker-compose.yml` 一起搞没了，光剩数据库 dump **解不开、白备**。站在用户角度，最痛的失败就是「做对了备份却恢复不了」，本版默认堵上：
+`simple-deploy.sh`（安装 / 升级时）会自动把备份脚本放到 `~/teslamate-chinese/backup.sh`，并让你三选一：**① 设每日自动备份、含密钥（推荐，可独立恢复）/ ② 设、不含密钥 / ③ 否**。通用 Linux 选 ①/② 直接写好 crontab、群晖打印 DSM 任务计划步骤。手动配置见 [`TROUBLESHOOTING.md#db-backup`](TROUBLESHOOTING.md#db-backup)。
 
-- **`scripts/backup.sh` 默认连 `docker-compose.yml`（含 `ENCRYPTION_KEY`）一起快照**（存成 `teslamate-compose-SECRET.yml`，只留最新一份），让每份备份都能**独立恢复**，用户不必再手抄那串复杂的随机密钥；
-- **隐私警告 + 逃生口**：含密钥意味着拿到备份的人能解你的 Tesla token（token 能控车），脚本会提醒「备份目录务必私密、别公开分享」；安全顾虑大的用户可 `INCLUDE_CONFIG=0` 关闭（关了则需自己单独留底密钥）；
-- **一键脚本给可选菜单**（不用手敲 env）：设置自动备份时三选一 ——「① 含密钥(推荐) / ② 不含密钥 / ③ 否」，选 ② 自动在定时命令里加 `INCLUDE_CONFIG=0`，并提醒你单独留底密钥；
-- 自动查找 `docker-compose.yml`（`COMPOSE_FILE` 可显式指定），找不到则降级为纯数据库备份并提示；
-- **一键脚本 + 文档对齐**：`simple-deploy.sh` 装完凭据区加一句「这三项也都在 `docker-compose.yml` 里，没抄到可找回」（消除恐慌）；设置自动备份时说明备份已含密钥；`TROUBLESHOOTING.md#db-backup` 新增「关于密钥与隐私」+ 恢复时先把 `teslamate-compose-SECRET.yml` 改回 `docker-compose.yml`；README 同步。
+### 🔧 已确认 Grafana 13.0.1 兼容
 
-> 说明：`GRAFANA_PASS` 忘了可 `docker exec ... grafana cli admin reset-admin-password` 重置，不需备份；真正不可替代的只有 `ENCRYPTION_KEY`。
+上游 Grafana 主线已升到 13.0.1（尚未进 TeslaMate 发布镜像）。本项目 45+3 个仪表盘 + `volkovlabs-form-panel` 插件已在 Grafana 13.0.1 下验证全部正常加载，上游将来发布 G13 基础镜像时可平滑跟上。
 
-### 🐛 修复 + 🆕 一键脚本集成备份：之前的备份提示对一键用户是假的
-
-v1.7.7 的备份提示和文档都写「仓库自带 `scripts/backup.sh`」，但一键安装（`simple-deploy.sh` / `curl|bash`）**根本不 `git clone` 仓库**（只 `cat` 出 docker-compose.yml + 按需 curl SQL），所以一键用户机器上压根没有这个脚本 —— 提示指向了一个不存在的文件。本版修正：
-
-- **`simple-deploy.sh` 新增 `setup_backup()`**，fresh-install 与 upgrade 两条路径都调用：
-  1. **必修**：`curl` 把 `backup.sh` 拉到 `~/teslamate-chinese/backup.sh`（一键用户终于真有这个脚本了）；
-  2. **交互提问**「设置每日 03:00 自动备份？[Y/n]」—— 通用 Linux 选 Y 直接幂等写入 crontab（已存在不重复加、升级时不再追问）；**群晖 DSM** 因不认普通 crontab 改打印任务计划步骤；非交互（`curl|bash`）模式跳过，提示 `AUTO_BACKUP=1` 重跑可启用；
-  3. 沿用脚本原有安全保证 + 提醒 ENCRYPTION_KEY 单独留底。
-- **`scripts/backup.sh` 改为单文件自包含**：没有 `lib/detect-containers.sh` 时（一键 curl 下来的单文件）内联同款容器探测兜底，`git clone` 场景仍优先复用共享 lib。
-- **文档对齐**：`TROUBLESHOOTING.md#db-backup` 区分「一键用户重跑脚本最省事 / git clone 用户用 `scripts/backup.sh` / 手动 curl 单文件」三种来源，路径改为真实安装路径（`~/teslamate-chinese/backup.sh`），crontab 示例改用 `$HOME`（`~` 在 crontab 不展开）；README 升级备份段同步。
-
-> 经验：加新依赖必须枚举所有安装入口（一键脚本 fresh + upgrade / git clone / 手动）逐一打补丁——v1.7.7 只覆盖了 clone 路径就发了。
+> **升级看到武汉选项**：重跑 `upgrade.sh` / 一键脚本补装 SQL + `docker compose pull` 拉新镜像。
 
 ## [v1.7.7] - 2026-06-01
 
