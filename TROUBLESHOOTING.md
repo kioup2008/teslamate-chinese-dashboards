@@ -170,6 +170,26 @@ newgrp docker
 
 ## 📊 Dashboard 问题
 
+### ❌ 地图 / 分时电价面板报 `function lat_for_map(...) does not exist`（更新镜像后高频）
+
+**症状**：地图整页或某些面板报错 `db query error: ERROR: function lat_for_map(unknown, numeric, numeric) does not exist`（或 `lng_for_map` / `effective_cost` / `compute_tou_cost` 等）。
+
+**根因**：这些是本项目的**自定义 SQL 函数**（坐标转换、分时电价计费），不在 Grafana 镜像里，要单独装进数据库。报这个错 = **没装、或更新镜像后没重装 SQL 三件套**。⚠️ **跟 PostgreSQL 版本无关，别去升级 PG**（升 PG 是另一个错：`function date_trunc(text, timestamp with time zone, text) does not exist`，两者不要混）。
+
+**修复**——重装 SQL 三件套（坐标函数在 `install-coord-functions.sql`、分时电价在 `install-tou.sql`）：
+
+```bash
+# 容器名不是 teslamate-database-1 时先 docker compose ps -q database 查实际名
+DB=$(docker compose ps -q database)
+for f in install-coord-functions install-tou install-indexes; do
+  curl -fsSL "https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/main/sql/${f}.sql" \
+    | docker exec -i "$DB" psql -U teslamate -d teslamate
+done
+docker compose restart grafana
+```
+
+脚本是 `CREATE OR REPLACE`，重跑零风险；一键安装用户直接重跑 `simple-deploy.sh` 会自动装。装完刷新即恢复。
+
 ### ❌ 从官方 TeslaMate 迁移后「分时电价配置」整页报 panel not found（v1.7.0 / v1.7.1 迁移用户）
 
 **症状**：跑完 `migrate-from-official.sh` 后，打开「⚡ 分时电价配置」整个 dashboard 显示 `panel not found`，仪表盘列表里能搜到、Grafana 日志全是 INFO 无 ERROR。**v1.7.2+ 的 migrate 脚本已经自动修，这一节给已经踩坑的用户自助修复。**
