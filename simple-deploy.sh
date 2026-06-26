@@ -19,8 +19,8 @@ SQL_BASE="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/
 REPO_BASE="https://raw.githubusercontent.com/wjsall/teslamate-chinese-dashboards/${SQL_REF}"
 
 # 端口配置（支持环境变量覆盖，端口冲突时用：TM_PORT=14000 GF_PORT=13000 bash simple-deploy.sh）
-TM_PORT="${TM_PORT:-4000}"
-GF_PORT="${GF_PORT:-3000}"
+TM_PORT="${TM_PORT:-4400}"
+GF_PORT="${GF_PORT:-3300}"
 
 echo "=============================================="
 echo "  TeslaMate 中文版 — Tesla 车主数据看板"
