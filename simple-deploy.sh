@@ -271,7 +271,7 @@ else
 fi
 
 # 创建工作目录
-INSTALL_DIR="${HOME}/teslamate-chinese"
+INSTALL_DIR="/volume1/docker/teslamate"
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
